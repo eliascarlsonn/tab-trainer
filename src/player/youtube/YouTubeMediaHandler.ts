@@ -2,6 +2,10 @@ import type { synth } from "@coderline/alphatab";
 import { YtState, type YtPlayer } from "./youtubeApi";
 
 const SEEK_SETTLE_MS = 1500;
+/** How long YouTube may take to report a seek's new time before its own clock is trusted again. */
+const SEEK_REPORT_TIMEOUT_MS = 3000;
+/** A reported time this close to the seek target means YouTube has caught up. */
+const SEEK_REPORT_TOLERANCE_MS = 500;
 
 /**
  * Lets alphaTab use a YouTube video as its time axis.
@@ -12,6 +16,11 @@ export class YouTubeMediaHandler implements synth.IExternalMediaHandler {
   private frame = 0;
   /** YouTube starts unstarted videos when seeking; such plays are undone until this time. */
   private holdPausedUntil = 0;
+  /**
+   * YouTube seeks asynchronously: right after `seekTo`, `getCurrentTime()` still returns the old
+   * time. Reporting that would snap alphaTab's cursor back, so the target is reported instead.
+   */
+  private pendingSeek: { timeMs: number; until: number } | undefined;
 
   constructor(
     private readonly video: YtPlayer,
@@ -39,7 +48,9 @@ export class YouTubeMediaHandler implements synth.IExternalMediaHandler {
   }
 
   seekTo(time: number): void {
-    if (this.video.getPlayerState() !== YtState.Playing) this.holdPausedUntil = performance.now() + SEEK_SETTLE_MS;
+    const now = performance.now();
+    if (this.video.getPlayerState() !== YtState.Playing) this.holdPausedUntil = now + SEEK_SETTLE_MS;
+    this.pendingSeek = { timeMs: time, until: now + SEEK_REPORT_TIMEOUT_MS };
     this.video.seekTo(time / 1000, true);
     this.reportPosition();
   }
@@ -72,7 +83,19 @@ export class YouTubeMediaHandler implements synth.IExternalMediaHandler {
   }
 
   private reportPosition() {
-    this.output.updatePosition(this.video.getCurrentTime() * 1000);
+    this.output.updatePosition(this.currentTimeMs());
+  }
+
+  private currentTimeMs(): number {
+    const actual = this.video.getCurrentTime() * 1000;
+    const seek = this.pendingSeek;
+    if (!seek) return actual;
+    const caughtUp = Math.abs(actual - seek.timeMs) < SEEK_REPORT_TOLERANCE_MS;
+    if (caughtUp || performance.now() > seek.until) {
+      this.pendingSeek = undefined;
+      return actual;
+    }
+    return seek.timeMs;
   }
 
   private startPumping() {
