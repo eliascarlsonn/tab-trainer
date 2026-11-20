@@ -84,7 +84,9 @@ export interface SsMeasure {
   clef?: string;
   keySignature?: SsKeySignature | null;
   repeatStart?: boolean;
-  /** Number of times the section is played (format observed as number or object). */
+  /** Closes a repeat: the number of times the section is played (observed as e.g. `repeat: 2`). */
+  repeat?: number;
+  /** Older guess at the repeat-close field; never seen in a capture, still read as a fallback. */
   repeatClose?: number | { times?: number };
   alternateEnding?: number[];
 }

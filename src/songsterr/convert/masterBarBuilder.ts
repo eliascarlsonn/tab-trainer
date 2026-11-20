@@ -9,7 +9,7 @@ function barDurationTicks([numerator, denominator]: Fraction): number {
 }
 
 function repeatCount(measure: SsMeasure): number {
-  const close = measure.repeatClose;
+  const close = measure.repeat ?? measure.repeatClose;
   if (close === undefined) return 0;
   const times = typeof close === "number" ? close : close.times;
   return Math.max(2, times ?? 2);
