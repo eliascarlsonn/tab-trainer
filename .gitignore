@@ -1,0 +1,12 @@
+node_modules
+dist
+*.local
+.vite
+
+# Personal tab captures — private, never committed
+samples/
+*.har
+
+# Copied in by the alphaTab Vite plugin
+public/font/
+public/soundfont/
