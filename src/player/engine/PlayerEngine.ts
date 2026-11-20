@@ -33,7 +33,6 @@ export class PlayerEngine {
   private readonly score: model.Score;
   private readonly trackIndexByPart: Map<number, number>;
   private media: YouTubeMediaHandler | undefined;
-  private lastTick = 0;
 
   constructor(
     host: HTMLElement,
@@ -85,9 +84,9 @@ export class PlayerEngine {
     api.error.on((error) => set({ phase: "error", error: error.message }));
     api.playerReady.on(() => this.onPlayerReady());
     api.playerStateChanged.on((e) => set({ playing: e.state === synth.PlayerState.Playing }));
+    api.playerFinished.on(() => this.onLoopPassCompleted());
     api.playedBeatChanged.on((beat) => set({ currentBar: beat.voice.bar.index }));
     api.playerPositionChanged.on((e) => {
-      this.detectLoopPass(e.currentTick, e.isSeek);
       set({ currentTimeMs: e.currentTime, endTimeMs: e.endTime, tempo: e.modifiedTempo });
       // During playback the played-beat event tracks the bar; seeks have to look it up.
       if (e.isSeek) this.updateBarAt(e.currentTick);
@@ -240,12 +239,9 @@ export class PlayerEngine {
     this.storeLoopRange(range);
   }
 
-  /** A jump back to the loop start during playback marks one completed pass. */
-  private detectLoopPass(tick: number, isSeek: boolean) {
-    const wrapped = !isSeek && tick < this.lastTick && this.settings.loopEnabled && this.store.getState().playing;
-    this.lastTick = tick;
-    if (!wrapped) return;
-
+  /** alphaTab reports "finished" each time a loop wraps around; each one is a completed pass. */
+  private onLoopPassCompleted() {
+    if (!this.settings.loopEnabled) return;
     const step = completePass(this.settings.trainer, this.settings.speed, {
       passes: this.store.getState().trainerPasses,
     });
