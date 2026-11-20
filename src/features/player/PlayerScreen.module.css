@@ -1,0 +1,36 @@
+/* Grid areas let the score element come first in the DOM (alphaTab needs it before the engine exists). */
+.shell {
+  display: grid;
+  grid-template-areas:
+    "header"
+    "score"
+    "dock";
+  grid-template-rows: auto minmax(0, 1fr) var(--dock-height);
+  height: 100%;
+  background: var(--tolex-deep);
+}
+
+.scroll {
+  grid-area: score;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.score {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--s5) var(--s4) var(--s8);
+}
+
+.missing {
+  display: grid;
+  gap: var(--s3);
+  place-content: center;
+  height: 100%;
+  text-align: center;
+}
+
+.missing a {
+  color: var(--amber);
+}

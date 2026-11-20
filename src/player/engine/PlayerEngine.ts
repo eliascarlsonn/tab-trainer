@@ -10,6 +10,7 @@ import {
   type NotationMode,
   type PlaybackSource,
   type PracticeSettings,
+  type TickRange,
   type TrackMix,
   type TrainerSettings,
 } from "@/practice/practiceSettings";
@@ -88,10 +89,12 @@ export class PlayerEngine {
     api.playerPositionChanged.on((e) => {
       this.detectLoopPass(e.currentTick, e.isSeek);
       set({ currentTimeMs: e.currentTime, endTimeMs: e.endTime, tempo: e.modifiedTempo });
+      // During playback the played-beat event tracks the bar; seeks have to look it up.
+      if (e.isSeek) this.updateBarAt(e.currentTick);
     });
     api.playbackRangeChanged.on((e) => {
       const range = e.playbackRange;
-      this.patchSettings({ loopRange: range ? { startTick: range.startTick, endTick: range.endTick } : null });
+      this.storeLoopRange(range ? { startTick: range.startTick, endTick: range.endTick } : null);
       if (range && !this.settings.loopEnabled) this.setLoopEnabled(true);
     });
   }
@@ -200,19 +203,41 @@ export class PlayerEngine {
   clearLoop(): void {
     this.api.clearPlaybackRangeHighlight();
     this.api.playbackRange = null;
-    this.patchSettings({ loopRange: null });
+    this.storeLoopRange(null);
     this.setLoopEnabled(false);
+  }
+
+  private storeLoopRange(range: TickRange | null) {
+    this.patchSettings({ loopRange: range });
+    const beats = range && this.beatsInRange(range);
+    this.store.setState({
+      loopBars: beats ? { start: beats.start.voice.bar.index, end: beats.end.voice.bar.index } : null,
+    });
+  }
+
+  private beatAt(tick: number): model.Beat | undefined {
+    return this.api.tickCache?.findBeat(new Set([this.displayedTrack().index]), tick)?.beat;
+  }
+
+  private updateBarAt(tick: number) {
+    const beat = this.beatAt(tick);
+    if (beat) this.store.setState({ currentBar: beat.voice.bar.index });
+  }
+
+  /** First and last displayed beat inside a tick range. */
+  private beatsInRange(range: TickRange) {
+    const start = this.beatAt(range.startTick);
+    const end = this.beatAt(Math.max(range.startTick, range.endTick - 1));
+    return start && end ? { start, end } : undefined;
   }
 
   /** Re-draws the saved loop's markers after a (re-)render. */
   private restoreLoopHighlight() {
     const range = this.settings.loopRange;
-    const tickCache = this.api.tickCache;
-    if (!range || !tickCache) return;
-    const tracks = new Set([this.displayedTrack().index]);
-    const start = tickCache.findBeat(tracks, range.startTick)?.beat;
-    const end = tickCache.findBeat(tracks, Math.max(range.startTick, range.endTick - 1))?.beat;
-    if (start && end) this.api.highlightPlaybackRange(start, end);
+    const beats = range && this.beatsInRange(range);
+    if (!beats) return;
+    this.api.highlightPlaybackRange(beats.start, beats.end);
+    this.storeLoopRange(range);
   }
 
   /** A jump back to the loop start during playback marks one completed pass. */
@@ -339,7 +364,7 @@ export class PlayerEngine {
 
   /** Keeps alphaTab in step when the video is played or paused from its own controls. */
   onVideoStateChange(state: number): void {
-    this.media?.onVideoStateChange(state);
+    if (!this.media?.onVideoStateChange(state)) return;
     const playing = this.store.getState().playing;
     if (state === YtState.Playing && !playing) this.api.play();
     if ((state === YtState.Paused || state === YtState.Ended) && playing) this.api.pause();

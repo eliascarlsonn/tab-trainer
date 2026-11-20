@@ -1,0 +1,42 @@
+.overlay {
+  grid-area: score;
+  z-index: 10;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--s3);
+  background: var(--tolex-deep);
+  text-align: center;
+}
+
+/* The pilot light warming up: the app's single ambient animation. */
+.pilot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: var(--amber-glow);
+  animation: warm 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes warm {
+  from {
+    opacity: 0.35;
+    box-shadow: none;
+  }
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.detail {
+  max-width: 48ch;
+  color: var(--chalk-muted);
+  font-size: var(--text-sm);
+}
+
+.link {
+  color: var(--amber);
+}

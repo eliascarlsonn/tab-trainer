@@ -1,0 +1,120 @@
+import { useMemo, useRef, useState } from "react";
+import { sortByRecent, useLibrary } from "@/library/useLibrary";
+import { Button } from "@/ui/Button";
+import { Icon } from "@/ui/Icon";
+import { CaptureGuide } from "./CaptureGuide";
+import { SongList } from "./SongList";
+import { useFileDrop } from "./useFileDrop";
+import { useImport } from "./useImport";
+import styles from "./LibraryScreen.module.css";
+
+const ACCEPTED_FILES = ".har,application/json";
+
+export function LibraryScreen() {
+  const songs = useLibrary((s) => s.songs);
+  const remove = useLibrary((s) => s.remove);
+  const { status, run, dismiss } = useImport();
+  const dragging = useFileDrop(run);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const [showGuide, setShowGuide] = useState(false);
+
+  const sorted = useMemo(() => sortByRecent(songs), [songs]);
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? sorted.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q)) : sorted;
+  }, [sorted, query]);
+  const isEmpty = sorted.length === 0;
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.brand}>
+          <span className={styles.pilot} aria-hidden="true" />
+          Tab Trainer
+        </div>
+        <div className={styles.actions}>
+          {!isEmpty && (
+            <Button variant="ghost" onClick={() => setShowGuide((v) => !v)}>
+              {showGuide ? "Hide guide" : "How to capture a song"}
+            </Button>
+          )}
+          <Button variant="primary" icon="upload" onClick={() => fileInput.current?.click()}>
+            Import capture
+          </Button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept={ACCEPTED_FILES}
+            multiple
+            hidden
+            onChange={(e) => {
+              void run([...(e.target.files ?? [])]);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      </header>
+
+      {status.kind !== "idle" && (
+        <div className={styles.status} data-kind={status.kind} role="status">
+          <span>{status.kind === "working" ? "Reading capture…" : status.message}</span>
+          {status.kind !== "working" && (
+            <button type="button" className={styles.statusClose} onClick={dismiss} aria-label="Dismiss">
+              <Icon name="close" size={14} />
+            </button>
+          )}
+        </div>
+      )}
+
+      <main className={styles.main}>
+        {isEmpty ? (
+          <section className={styles.empty}>
+            <h1 className={styles.headline}>Add your first song</h1>
+            <p className={styles.lede}>
+              Save a song from Songsterr with your browser, then drop the file anywhere on this page. Everything stays on
+              this computer.
+            </p>
+            <CaptureGuide />
+            <button type="button" className={styles.dropzone} onClick={() => fileInput.current?.click()}>
+              <Icon name="upload" size={22} />
+              Drop a .har file here or click to choose one
+            </button>
+          </section>
+        ) : (
+          <>
+            {showGuide && (
+              <section className={styles.guidePanel}>
+                <CaptureGuide />
+              </section>
+            )}
+            <div className={styles.toolbar}>
+              <h1 className={styles.sectionTitle}>Your songs</h1>
+              <label className={styles.search}>
+                <Icon name="search" size={16} />
+                <input
+                  type="search"
+                  placeholder="Search songs or artists"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
+            </div>
+            {visible.length > 0 ? (
+              <SongList songs={visible} onRemove={(song) => void remove(song.id)} />
+            ) : (
+              <p className={styles.noResults}>No songs match "{query}".</p>
+            )}
+          </>
+        )}
+      </main>
+
+      {dragging && (
+        <div className={styles.dropOverlay}>
+          <Icon name="upload" size={28} />
+          Drop to import
+        </div>
+      )}
+    </div>
+  );
+}

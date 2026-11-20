@@ -1,0 +1,24 @@
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s1) var(--s1) var(--s1) var(--s3);
+}
+
+.label {
+  color: var(--chalk-muted);
+  font-size: var(--text-sm);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+}
+
+.value {
+  min-width: 52px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: center;
+}

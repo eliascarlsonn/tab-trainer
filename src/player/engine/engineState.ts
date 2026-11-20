@@ -25,6 +25,8 @@ export interface EngineState {
   /** Discrete speeds the video supports; `null` means any speed works. */
   speedOptions: number[] | null;
   trainerPasses: number;
+  /** Bars covered by the current loop range, for display. */
+  loopBars: { start: number; end: number } | null;
   settings: PracticeSettings;
 }
 
@@ -43,6 +45,7 @@ export function initialEngineState(settings: PracticeSettings): EngineState {
     sections: [],
     speedOptions: null,
     trainerPasses: 0,
+    loopBars: null,
     settings,
   };
 }

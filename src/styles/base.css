@@ -1,0 +1,81 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--tolex);
+  color: var(--chalk);
+  font-family: var(--font);
+  font-size: var(--text-md);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--amber-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ── alphaTab cursor & selection (global class names owned by alphaTab) ── */
+
+.at-cursor-bar {
+  background: rgb(240 162 74 / 0.07);
+}
+
+.at-cursor-beat {
+  background: var(--amber);
+  width: 3px;
+  border-radius: 2px;
+  box-shadow: var(--amber-glow);
+}
+
+.at-selection div {
+  background: var(--teal-soft);
+  border-top: 2px solid var(--teal);
+}
+
+.at-highlight * {
+  fill: var(--amber);
+  stroke: var(--amber);
+}

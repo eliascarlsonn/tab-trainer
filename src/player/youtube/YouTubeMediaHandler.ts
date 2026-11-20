@@ -1,6 +1,8 @@
 import type { synth } from "@coderline/alphatab";
 import { YtState, type YtPlayer } from "./youtubeApi";
 
+const SEEK_SETTLE_MS = 1500;
+
 /**
  * Lets alphaTab use a YouTube video as its time axis.
  * alphaTab drives the video through this handler; while the video plays,
@@ -8,6 +10,8 @@ import { YtState, type YtPlayer } from "./youtubeApi";
  */
 export class YouTubeMediaHandler implements synth.IExternalMediaHandler {
   private frame = 0;
+  /** YouTube starts unstarted videos when seeking; such plays are undone until this time. */
+  private holdPausedUntil = 0;
 
   constructor(
     private readonly video: YtPlayer,
@@ -35,11 +39,13 @@ export class YouTubeMediaHandler implements synth.IExternalMediaHandler {
   }
 
   seekTo(time: number): void {
+    if (this.video.getPlayerState() !== YtState.Playing) this.holdPausedUntil = performance.now() + SEEK_SETTLE_MS;
     this.video.seekTo(time / 1000, true);
     this.reportPosition();
   }
 
   play(): void {
+    this.holdPausedUntil = 0;
     this.video.playVideo();
   }
 
@@ -47,10 +53,18 @@ export class YouTubeMediaHandler implements synth.IExternalMediaHandler {
     this.video.pauseVideo();
   }
 
-  /** Must be forwarded from the YouTube player's `onStateChange`. */
-  onVideoStateChange(state: number): void {
+  /**
+   * Must be forwarded from the YouTube player's `onStateChange`.
+   * Returns false when the change was an artifact of seeking and should be ignored.
+   */
+  onVideoStateChange(state: number): boolean {
+    if (state === YtState.Playing && performance.now() < this.holdPausedUntil) {
+      this.video.pauseVideo();
+      return false;
+    }
     if (state === YtState.Playing) this.startPumping();
     else this.stopPumping();
+    return true;
   }
 
   dispose(): void {
