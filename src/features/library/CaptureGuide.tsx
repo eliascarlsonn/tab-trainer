@@ -7,7 +7,10 @@ const STEPS = [
     title: "Load what you need",
     body: "Click through every track you want to practice. Turn on the video if you want to play along with it.",
   },
-  { title: "Export and drop", body: "Click the download arrow (Export HAR) in the Network tab and drop the file here." },
+  {
+    title: "Export and drop",
+    body: "Click the download arrow (Export HAR) in the Network tab and drop the file here.",
+  },
 ];
 
 /** The capture workflow is a real sequence, so the steps are numbered. */

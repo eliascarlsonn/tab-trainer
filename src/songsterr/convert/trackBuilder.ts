@@ -64,7 +64,13 @@ function applyKeySignature(bar: model.Bar, key: SsKeySignature) {
   bar.keySignatureType = key.mode === "minor" ? model.KeySignatureType.Minor : model.KeySignatureType.Major;
 }
 
-function buildBar(measure: SsMeasure, voiceCount: number, clef: model.Clef, context: StaffContext, chords: ChordRegistry) {
+function buildBar(
+  measure: SsMeasure,
+  voiceCount: number,
+  clef: model.Clef,
+  context: StaffContext,
+  chords: ChordRegistry,
+) {
   const bar = new model.Bar();
   bar.clef = clef;
   if (measure.keySignature && !context.isDrums) applyKeySignature(bar, measure.keySignature);

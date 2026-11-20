@@ -19,9 +19,19 @@ export function Stepper({ label, value, min, max, step, format, onChange }: Step
     <div className={styles.stepper}>
       <span className={styles.label}>{label}</span>
       <div className={styles.control}>
-        <IconButton icon="minus" label={`Decrease ${label.toLowerCase()}`} disabled={value <= min} onClick={() => change(-1)} />
+        <IconButton
+          icon="minus"
+          label={`Decrease ${label.toLowerCase()}`}
+          disabled={value <= min}
+          onClick={() => change(-1)}
+        />
         <span className={styles.value}>{format(value)}</span>
-        <IconButton icon="plus" label={`Increase ${label.toLowerCase()}`} disabled={value >= max} onClick={() => change(1)} />
+        <IconButton
+          icon="plus"
+          label={`Increase ${label.toLowerCase()}`}
+          disabled={value >= max}
+          onClick={() => change(1)}
+        />
       </div>
     </div>
   );

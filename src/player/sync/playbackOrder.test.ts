@@ -33,7 +33,12 @@ describe("playbackOrder", () => {
   });
 
   it("handles consecutive repeat groups", () => {
-    const bars = [bar({ isRepeatStart: true }), bar({ repeatCount: 2 }), bar({ isRepeatStart: true }), bar({ repeatCount: 2 })];
+    const bars = [
+      bar({ isRepeatStart: true }),
+      bar({ repeatCount: 2 }),
+      bar({ isRepeatStart: true }),
+      bar({ repeatCount: 2 }),
+    ];
     expect(playbackOrder(bars)).toEqual([0, 1, 0, 1, 2, 3, 2, 3]);
   });
 });

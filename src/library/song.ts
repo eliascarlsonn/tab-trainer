@@ -59,10 +59,30 @@ export function trackRole(info: Pick<SsTrackInfo, "instrument" | "instrumentId" 
   return "other";
 }
 
-/** Track names are "Musician | Gear | Part"; the last segment is the most descriptive. */
-export function shortTrackName(name: string): string {
-  const parts = name.split("|").map((p) => p.trim()).filter(Boolean);
-  return parts.at(-1) ?? name;
+const PART_WORDS =
+  /guitar|bass|vocal|drum|percussion|key|piano|organ|synth|lead|rhythm|clean|solo|harmony|acoustic|overdub|effect|delay|reverb|string|horn|choir|dialogue|intro/i;
+
+export interface TrackNameParts {
+  /** What is played, e.g. "Lead Guitar". */
+  part: string;
+  /** Who plays it, when the name says so. */
+  musician: string | undefined;
+}
+
+/**
+ * Songsterr names tracks "Musician | Gear | Part", but the order and the number of
+ * segments vary. The part is the last segment that reads like a musical role.
+ */
+export function splitTrackName(name: string): TrackNameParts {
+  const segments = name
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (segments.length < 2) return { part: segments[0] ?? name, musician: undefined };
+
+  const [musician, ...rest] = segments;
+  const part = rest.findLast((s) => PART_WORDS.test(s)) ?? rest.at(-1)!;
+  return { part, musician };
 }
 
 function buildCatalog(captured: CapturedSong): TrackEntry[] {

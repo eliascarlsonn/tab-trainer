@@ -86,9 +86,16 @@ function TrainerMenu() {
   return (
     <div className={styles.group}>
       <div className={styles.stack}>
-        <LedSwitch label="Trainer" on={trainer.enabled} onChange={setEnabled} title="Speed up a little after each pass" />
+        <LedSwitch
+          label="Trainer"
+          on={trainer.enabled}
+          onChange={setEnabled}
+          title="Speed up a little after each pass"
+        />
         <span className={styles.caption}>
-          {trainer.enabled ? `Pass ${passes + 1} of ${trainer.passesPerStep}` : `Up to ${formatPercent(trainer.target)}`}
+          {trainer.enabled
+            ? `Pass ${passes + 1} of ${trainer.passesPerStep}`
+            : `Up to ${formatPercent(trainer.target)}`}
         </span>
       </div>
       <Popover
@@ -112,32 +119,32 @@ function TrainerSettingsPanel() {
         Raises the speed after every few passes through the loop, until it reaches the target.
       </p>
       <Stepper
-            label="Speed up by"
-            value={trainer.step}
-            min={0.01}
-            max={0.25}
-            step={0.01}
-            format={formatPercent}
-            onChange={(step) => engine.setTrainer({ step })}
-          />
-          <Stepper
-            label="Stop at"
-            value={trainer.target}
-            min={SPEED_RANGE.min}
-            max={SPEED_RANGE.max}
-            step={SPEED_RANGE.step}
-            format={formatPercent}
-            onChange={(target) => engine.setTrainer({ target })}
-          />
-          <Stepper
-            label="Passes per step"
-            value={trainer.passesPerStep}
-            min={1}
-            max={10}
-            step={1}
-            format={String}
-            onChange={(passesPerStep) => engine.setTrainer({ passesPerStep })}
-          />
+        label="Speed up by"
+        value={trainer.step}
+        min={0.01}
+        max={0.25}
+        step={0.01}
+        format={formatPercent}
+        onChange={(step) => engine.setTrainer({ step })}
+      />
+      <Stepper
+        label="Stop at"
+        value={trainer.target}
+        min={SPEED_RANGE.min}
+        max={SPEED_RANGE.max}
+        step={SPEED_RANGE.step}
+        format={formatPercent}
+        onChange={(target) => engine.setTrainer({ target })}
+      />
+      <Stepper
+        label="Passes per step"
+        value={trainer.passesPerStep}
+        min={1}
+        max={10}
+        step={1}
+        format={String}
+        onChange={(passesPerStep) => engine.setTrainer({ passesPerStep })}
+      />
     </>
   );
 }

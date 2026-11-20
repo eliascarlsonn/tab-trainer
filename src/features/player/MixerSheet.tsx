@@ -4,7 +4,7 @@ import { formatPercent } from "@/lib/format";
 import { DEFAULT_TRACK_MIX } from "@/practice/practiceSettings";
 import { Sheet } from "@/ui/Sheet";
 import { useEngine, useEngineState, useSetting } from "./engineContext";
-import { trackTitle } from "./labels";
+import { trackSubtitle, trackTitle } from "./labels";
 import styles from "./MixerSheet.module.css";
 
 interface MixerSheetProps {
@@ -48,7 +48,7 @@ function MixerRow({ entry }: { entry: TrackEntry }) {
     <li className={styles.row}>
       <div className={styles.name}>
         <span className={cx(shown && styles.shown)}>{trackTitle(entry)}</span>
-        <span className={styles.instrument}>{entry.instrument}</span>
+        <span className={styles.instrument}>{trackSubtitle(entry)}</span>
       </div>
       <div className={styles.controls}>
         <button

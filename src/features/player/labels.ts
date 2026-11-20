@@ -1,4 +1,4 @@
-import { shortTrackName, type TrackEntry, type VideoKind, type VideoSource } from "@/library/song";
+import { splitTrackName, type TrackEntry, type VideoKind, type VideoSource } from "@/library/song";
 
 const VIDEO_KIND_LABELS: Record<VideoKind, string> = {
   original: "Original recording",
@@ -25,5 +25,10 @@ export function videoLabels(videos: readonly VideoSource[]): Map<string, string>
 }
 
 export function trackTitle(entry: Pick<TrackEntry, "name">): string {
-  return shortTrackName(entry.name);
+  return splitTrackName(entry.name).part;
+}
+
+/** Secondary line for a track: who plays it, or the instrument when the name has no musician. */
+export function trackSubtitle(entry: Pick<TrackEntry, "name" | "instrument">): string {
+  return splitTrackName(entry.name).musician ?? entry.instrument;
 }

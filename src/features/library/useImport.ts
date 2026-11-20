@@ -2,10 +2,7 @@ import { useCallback, useState } from "react";
 import { useLibrary } from "@/library/useLibrary";
 
 export type ImportStatus =
-  | { kind: "idle" }
-  | { kind: "working" }
-  | { kind: "done"; message: string }
-  | { kind: "error"; message: string };
+  { kind: "idle" } | { kind: "working" } | { kind: "done"; message: string } | { kind: "error"; message: string };
 
 function describe(titles: string[]): string {
   if (titles.length === 1) return `Added ${titles[0]}.`;

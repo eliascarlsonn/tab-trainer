@@ -6,7 +6,7 @@ import { Button, IconButton } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { MenuHeading, MenuItem, Popover } from "@/ui/Popover";
 import { useEngine, useSetting } from "./engineContext";
-import { trackTitle } from "./labels";
+import { trackSubtitle, trackTitle } from "./labels";
 import styles from "./PlayerHeader.module.css";
 
 interface PlayerHeaderProps {
@@ -67,7 +67,7 @@ function TrackPicker({ song }: { song: Song }) {
               key={entry.partId}
               selected={entry.partId === partId}
               disabled={!entry.captured}
-              hint={entry.captured ? entry.instrument : "Not captured"}
+              hint={entry.captured ? trackSubtitle(entry) : "Not captured"}
               onSelect={() => {
                 engine.selectTrack(entry.partId);
                 close();

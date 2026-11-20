@@ -72,8 +72,8 @@ export function LibraryScreen() {
           <section className={styles.empty}>
             <h1 className={styles.headline}>Add your first song</h1>
             <p className={styles.lede}>
-              Save a song from Songsterr with your browser, then drop the file anywhere on this page. Everything stays on
-              this computer.
+              Save a song from Songsterr with your browser, then drop the file anywhere on this page. Everything stays
+              on this computer.
             </p>
             <CaptureGuide />
             <button type="button" className={styles.dropzone} onClick={() => fileInput.current?.click()}>

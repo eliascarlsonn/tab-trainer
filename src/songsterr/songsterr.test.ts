@@ -51,7 +51,9 @@ describe.runIf(hasSample)("sample capture", () => {
     const drums = score.tracks.find((t) => t.staves[0]!.isPercussion)!;
     expect(drums.playbackInfo.primaryChannel).toBe(9);
 
-    const notes = score.tracks.flatMap((t) => t.staves[0]!.bars.flatMap((b) => b.voices.flatMap((v) => v.beats.flatMap((bt) => bt.notes))));
+    const notes = score.tracks.flatMap((t) =>
+      t.staves[0]!.bars.flatMap((b) => b.voices.flatMap((v) => v.beats.flatMap((bt) => bt.notes))),
+    );
     expect(notes.length).toBeGreaterThan(10_000);
     expect(notes.some((n) => n.hasBend)).toBe(true);
   });

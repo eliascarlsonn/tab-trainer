@@ -83,7 +83,14 @@ export function Knob({
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
-    const keys: Record<string, number> = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 5, PageDown: -5 };
+    const keys: Record<string, number> = {
+      ArrowUp: 1,
+      ArrowRight: 1,
+      ArrowDown: -1,
+      ArrowLeft: -1,
+      PageUp: 5,
+      PageDown: -5,
+    };
     if (e.key in keys) {
       e.preventDefault();
       nudge(keys[e.key]!);

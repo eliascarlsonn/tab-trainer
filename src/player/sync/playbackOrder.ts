@@ -15,7 +15,7 @@ export function playbackOrder(masterBars: readonly RepeatInfo[]): number[] {
   let groupStart = 0;
   let pass = 0;
 
-  for (let i = 0; i < masterBars.length && order.length < MAX_PLAYED_BARS; ) {
+  for (let i = 0; i < masterBars.length && order.length < MAX_PLAYED_BARS;) {
     const bar = masterBars[i]!;
 
     if (bar.isRepeatStart && i !== groupStart) {

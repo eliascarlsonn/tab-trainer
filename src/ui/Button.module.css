@@ -9,7 +9,9 @@
   font-size: var(--text-sm);
   font-weight: 600;
   white-space: nowrap;
-  transition: background-color 120ms var(--ease), border-color 120ms var(--ease);
+  transition:
+    background-color 120ms var(--ease),
+    border-color 120ms var(--ease);
 }
 
 .button:disabled {
@@ -52,7 +54,9 @@
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--chalk-muted);
-  transition: color 120ms var(--ease), background-color 120ms var(--ease);
+  transition:
+    color 120ms var(--ease),
+    background-color 120ms var(--ease);
 }
 
 .iconButton:hover:not(:disabled) {

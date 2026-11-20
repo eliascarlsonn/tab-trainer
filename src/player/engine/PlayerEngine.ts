@@ -246,7 +246,9 @@ export class PlayerEngine {
     this.lastTick = tick;
     if (!wrapped) return;
 
-    const step = completePass(this.settings.trainer, this.settings.speed, { passes: this.store.getState().trainerPasses });
+    const step = completePass(this.settings.trainer, this.settings.speed, {
+      passes: this.store.getState().trainerPasses,
+    });
     this.store.setState({ trainerPasses: step.progress.passes });
     if (step.speed !== undefined) this.setSpeed(step.speed);
   }

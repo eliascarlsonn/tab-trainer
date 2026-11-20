@@ -100,7 +100,9 @@
   background: var(--tolex-deep);
   color: var(--chalk-muted);
   font-size: var(--text-md);
-  transition: border-color 120ms var(--ease), color 120ms var(--ease);
+  transition:
+    border-color 120ms var(--ease),
+    color 120ms var(--ease);
 }
 
 .dropzone:hover {

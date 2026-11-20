@@ -8,6 +8,10 @@ export default defineConfig({
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
+  build: {
+    // alphaTab's core is a single ~1.2 MB module; it is already split out and lazy-loaded with the player.
+    chunkSizeWarningLimit: 1400,
+  },
   test: {
     environment: "node",
   },

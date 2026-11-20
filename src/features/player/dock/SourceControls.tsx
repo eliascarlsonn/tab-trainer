@@ -42,7 +42,7 @@ function SourcePicker({ song }: { song: Song }) {
   const engine = useEngine();
   const source = useSetting("source");
   const labels = useMemo(() => videoLabels(song.videos), [song.videos]);
-  const currentLabel = source.kind === "video" ? labels.get(source.videoId) ?? "Video" : "Tab audio";
+  const currentLabel = source.kind === "video" ? (labels.get(source.videoId) ?? "Video") : "Tab audio";
 
   return (
     <Popover
@@ -66,7 +66,11 @@ function SourcePicker({ song }: { song: Song }) {
         };
         return (
           <>
-            <MenuItem selected={source.kind === "synth"} hint="Pitch, metronome" onSelect={() => choose({ kind: "synth" })}>
+            <MenuItem
+              selected={source.kind === "synth"}
+              hint="Pitch, metronome"
+              onSelect={() => choose({ kind: "synth" })}
+            >
               Tab audio
             </MenuItem>
             <MenuHeading>{song.videos.length ? "Synced videos" : "No synced videos were captured"}</MenuHeading>

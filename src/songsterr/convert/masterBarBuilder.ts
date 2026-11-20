@@ -42,7 +42,12 @@ function applyAutomations(masterBars: model.MasterBar[], track: SsTrack, signatu
     const bar = masterBars[tempo.measure];
     if (!bar) continue;
     bar.tempoAutomations.push(
-      model.Automation.buildTempoAutomation(false, ratioIn(tempo.measure, tempo.position), tempo.bpm, QUARTER_TEMPO_REFERENCE),
+      model.Automation.buildTempoAutomation(
+        false,
+        ratioIn(tempo.measure, tempo.position),
+        tempo.bpm,
+        QUARTER_TEMPO_REFERENCE,
+      ),
     );
   }
 
