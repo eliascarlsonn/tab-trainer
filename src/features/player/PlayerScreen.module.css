@@ -18,6 +18,9 @@
 }
 
 .score {
+  /* alphaTab puts its cursor/selection layer at z-index 1000; keep that inside the score so
+     menus, the dock and the video panel stay on top. */
+  isolation: isolate;
   max-width: 1280px;
   margin: 0 auto;
   padding: var(--s5) var(--s4) var(--s8);

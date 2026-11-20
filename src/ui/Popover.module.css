@@ -42,6 +42,17 @@
   text-align: left;
 }
 
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.row .item {
+  flex: 1;
+  min-width: 0;
+}
+
 .item:hover:not(:disabled) {
   background: var(--panel-raised);
 }

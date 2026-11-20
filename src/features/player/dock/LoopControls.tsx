@@ -1,4 +1,5 @@
 import { formatPercent } from "@/lib/format";
+import { sectionBarRange } from "@/player/engine/scoreQueries";
 import { SPEED_RANGE } from "@/practice/practiceSettings";
 import { Button, IconButton } from "@/ui/Button";
 import { LedSwitch } from "@/ui/LedSwitch";
@@ -34,13 +35,17 @@ export function LoopControls() {
 function SectionMenu() {
   const engine = useEngine();
   const sections = useEngineState((s) => s.sections);
-  const hasLoop = useEngineState((s) => s.loopBars !== null);
+  const barCount = useEngineState((s) => s.barCount);
+  const currentBar = useEngineState((s) => s.currentBar);
+  const loopBars = useEngineState((s) => s.loopBars);
+  const loopEnabled = useSetting("loopEnabled");
+  const hasLoop = loopBars !== null;
 
   return (
     <Popover
       placement="above"
       trigger={({ toggle }) => (
-        <Button variant="ghost" icon="loop" onClick={toggle}>
+        <Button variant="ghost" icon="sections" onClick={toggle}>
           Sections
         </Button>
       )}
@@ -56,16 +61,31 @@ function SectionMenu() {
             <MenuItem disabled={!hasLoop} onSelect={pick(() => engine.clearLoop())}>
               Clear loop
             </MenuItem>
-            {sections.length > 0 && <MenuHeading>Loop a section</MenuHeading>}
-            {sections.map((section, i) => (
-              <MenuItem
-                key={section.barIndex}
-                hint={`Bar ${section.barIndex + 1}`}
-                onSelect={pick(() => engine.loopSection(i))}
-              >
-                {section.title}
-              </MenuItem>
-            ))}
+            {sections.length > 0 && <MenuHeading>Go to a section</MenuHeading>}
+            {sections.map((section, i) => {
+              const range = sectionBarRange(sections, i, barCount)!;
+              const current = currentBar >= range.startBar && currentBar <= range.endBar;
+              const looped = loopEnabled && loopBars?.start === range.startBar && loopBars.end === range.endBar;
+              return (
+                <MenuItem
+                  key={section.barIndex}
+                  selected={current}
+                  hint={`Bar ${section.barIndex + 1}`}
+                  onSelect={pick(() => engine.goToSection(i))}
+                  action={
+                    <IconButton
+                      icon="loop"
+                      label={`Loop ${section.title}`}
+                      active={looped}
+                      className={styles.sectionLoop}
+                      onClick={pick(() => engine.loopSection(i))}
+                    />
+                  }
+                >
+                  {section.title}
+                </MenuItem>
+              );
+            })}
           </>
         );
       }}

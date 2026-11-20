@@ -32,6 +32,8 @@ export interface PracticeSettings {
   partId: number | undefined;
   speed: number;
   pitch: number;
+  /** Overall playback volume, 0–1; applies to tab audio and synced videos alike. */
+  volume: number;
   metronome: boolean;
   countIn: boolean;
   loopEnabled: boolean;
@@ -47,6 +49,7 @@ export interface PracticeSettings {
 
 export const SPEED_RANGE = { min: 0.25, max: 1.5, step: 0.05 } as const;
 export const PITCH_RANGE = { min: -12, max: 12, step: 1 } as const;
+export const VOLUME_RANGE = { min: 0, max: 1, step: 0.05 } as const;
 export const ZOOM_RANGE = { min: 0.6, max: 1.6, step: 0.1 } as const;
 
 export const DEFAULT_TRACK_MIX: TrackMix = { muted: false, solo: false, volume: 1 };
@@ -69,6 +72,7 @@ export function defaultPracticeSettings(song: Song): PracticeSettings {
     partId: defaultPartId(song),
     speed: 1,
     pitch: 0,
+    volume: 1,
     metronome: false,
     countIn: false,
     loopEnabled: false,

@@ -65,10 +65,12 @@ interface MenuItemProps {
   selected?: boolean;
   hint?: ReactNode;
   disabled?: boolean;
+  /** A secondary control (e.g. an IconButton) shown at the end of the row, beside the item. */
+  action?: ReactNode;
 }
 
-export function MenuItem({ children, onSelect, selected, hint, disabled }: MenuItemProps) {
-  return (
+export function MenuItem({ children, onSelect, selected, hint, disabled, action }: MenuItemProps) {
+  const item = (
     <button
       type="button"
       role="menuitemradio"
@@ -80,6 +82,13 @@ export function MenuItem({ children, onSelect, selected, hint, disabled }: MenuI
       <span className={styles.itemText}>{children}</span>
       {hint && <span className={styles.hint}>{hint}</span>}
     </button>
+  );
+  if (!action) return item;
+  return (
+    <div className={styles.row}>
+      {item}
+      {action}
+    </div>
   );
 }
 

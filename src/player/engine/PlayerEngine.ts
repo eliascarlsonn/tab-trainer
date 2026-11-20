@@ -1,11 +1,12 @@
 import { AlphaTabApi, model, synth } from "@coderline/alphatab";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import type { Song } from "@/library/song";
-import { clamp, nearest } from "@/lib/math";
+import { clamp } from "@/lib/math";
 import {
   DEFAULT_TRACK_MIX,
   PITCH_RANGE,
   SPEED_RANGE,
+  VOLUME_RANGE,
   ZOOM_RANGE,
   type NotationMode,
   type PlaybackSource,
@@ -33,6 +34,13 @@ export class PlayerEngine {
   private readonly score: model.Score;
   private readonly trackIndexByPart: Map<number, number>;
   private media: YouTubeMediaHandler | undefined;
+  /** Range last pushed into alphaTab's player; undefined until the player is (re)created. */
+  private appliedRange: TickRange | null | undefined;
+  /**
+   * Ranges this engine pushed whose change events haven't come back yet. With the synth in a
+   * worker they arrive asynchronously, so they must be told apart from the user's own selections.
+   */
+  private readonly pendingRangeEchoes: (TickRange | null)[] = [];
 
   constructor(
     host: HTMLElement,
@@ -92,8 +100,17 @@ export class PlayerEngine {
       if (e.isSeek) this.updateBarAt(e.currentTick);
     });
     api.playbackRangeChanged.on((e) => {
-      const range = e.playbackRange;
-      this.storeLoopRange(range ? { startTick: range.startTick, endTick: range.endTick } : null);
+      const range: TickRange | null = e.playbackRange
+        ? { startTick: e.playbackRange.startTick, endTick: e.playbackRange.endTick }
+        : null;
+      const echo = this.pendingRangeEchoes.findIndex((r) => sameRange(r, range));
+      if (echo >= 0) {
+        this.pendingRangeEchoes.splice(0, echo + 1);
+        return;
+      }
+      // A selection made on the tab (or via loopBars): alphaTab has already applied it.
+      this.appliedRange = range;
+      this.storeLoopRange(range);
       if (range && !this.settings.loopEnabled) this.setLoopEnabled(true);
     });
   }
@@ -101,6 +118,8 @@ export class PlayerEngine {
   private onPlayerReady() {
     const usesVideo = this.settings.source.kind === "video";
     this.store.setState({ canPlay: !usesVideo || !!this.media });
+    // A new player instance may not carry the old range over; push it again.
+    this.appliedRange = undefined;
     this.applyPlaybackSettings();
   }
 
@@ -109,8 +128,10 @@ export class PlayerEngine {
     const s = this.settings;
     const usesSynth = s.source.kind === "synth";
     this.api.playbackSpeed = s.speed;
+    // With a video source alphaTab forwards this to the media handler, i.e. YouTube's own volume.
+    this.api.masterVolume = s.volume;
     this.api.isLooping = s.loopEnabled;
-    this.api.playbackRange = s.loopRange;
+    this.applyLoopRange();
     this.api.metronomeVolume = usesSynth && s.metronome ? 1 : 0;
     this.api.countInVolume = usesSynth && s.countIn ? 1 : 0;
     this.applyMixer();
@@ -140,8 +161,8 @@ export class PlayerEngine {
   // ── Practice controls ────────────────────────────────────────────────────
 
   setSpeed(speed: number): void {
-    const options = this.store.getState().speedOptions;
-    const value = options ? nearest(options, speed) : clamp(speed, SPEED_RANGE.min, SPEED_RANGE.max);
+    // YouTube plays any rate in 0.25–2 (its preset list is just the menu), so videos share this range.
+    const value = clamp(speed, SPEED_RANGE.min, SPEED_RANGE.max);
     this.patchSettings({ speed: Math.round(value * 100) / 100 });
     this.api.playbackSpeed = this.settings.speed;
   }
@@ -149,6 +170,12 @@ export class PlayerEngine {
   setPitch(semitones: number): void {
     this.patchSettings({ pitch: clamp(Math.round(semitones), PITCH_RANGE.min, PITCH_RANGE.max) });
     this.applyPitch();
+  }
+
+  setVolume(volume: number): void {
+    const value = clamp(volume, VOLUME_RANGE.min, VOLUME_RANGE.max);
+    this.patchSettings({ volume: Math.round(value * 100) / 100 });
+    this.api.masterVolume = this.settings.volume;
   }
 
   setMetronome(enabled: boolean): void {
@@ -174,24 +201,72 @@ export class PlayerEngine {
   // ── Looping ──────────────────────────────────────────────────────────────
 
   setLoopEnabled(enabled: boolean): void {
+    this.markLoopEnabled(enabled);
+    this.applyLoopRange();
+  }
+
+  private markLoopEnabled(enabled: boolean) {
     this.patchSettings({ loopEnabled: enabled });
     this.api.isLooping = enabled;
     this.store.setState({ trainerPasses: 0 });
   }
 
+  /**
+   * alphaTab confines playback to `playbackRange` whether or not it loops, so the saved range is
+   * only handed to the player while looping is on; otherwise playback runs through the whole song.
+   */
+  private applyLoopRange() {
+    const target = this.settings.loopEnabled ? this.settings.loopRange : null;
+    if (this.appliedRange !== undefined && sameRange(this.appliedRange, target)) return;
+    this.appliedRange = target;
+    this.pendingRangeEchoes.push(target);
+    if (this.pendingRangeEchoes.length > 8) this.pendingRangeEchoes.shift();
+    this.api.playbackRange = target;
+  }
+
   loopBars(startBar: number, endBar: number): void {
     const span = beatsSpanning(this.displayedTrack(), startBar, endBar);
     if (!span) return;
+    // alphaTab applies the new range itself and reports it back (possibly asynchronously), so
+    // only flip the flag here; re-pushing the stored range now would apply the old one.
+    this.markLoopEnabled(true);
     this.api.highlightPlaybackRange(span.start, span.end);
     this.api.applyPlaybackRangeFromHighlight();
-    this.setLoopEnabled(true);
     this.seekToBar(startBar);
   }
 
   loopSection(sectionIndex: number): void {
     const { sections, barCount } = this.store.getState();
     const range = sectionBarRange(sections, sectionIndex, barCount);
-    if (range) this.loopBars(range.startBar, range.endBar);
+    if (!range) return;
+    this.loopBars(range.startBar, range.endBar);
+    this.scrollToBar(range.startBar);
+  }
+
+  /**
+   * Moves to a section's first bar. An active loop that doesn't contain it is switched off (its
+   * range is kept), since alphaTab would otherwise hold the playhead inside the loop.
+   */
+  goToSection(sectionIndex: number): void {
+    const { sections, loopBars } = this.store.getState();
+    const section = sections[sectionIndex];
+    if (!section) return;
+    const outsideLoop = !loopBars || section.barIndex < loopBars.start || section.barIndex > loopBars.end;
+    if (this.settings.loopEnabled && outsideLoop) this.setLoopEnabled(false);
+    this.seekToBar(section.barIndex);
+    this.scrollToBar(section.barIndex);
+  }
+
+  /**
+   * alphaTab only follows the cursor while playing, and after a seek its cursor moves later, so
+   * scroll to the bar's rendered position directly, the same way alphaTab's page scrolling does.
+   */
+  private scrollToBar(barIndex: number) {
+    const bounds = this.api.boundsLookup?.findMasterBarByIndex(barIndex);
+    if (!bounds) return;
+    const ui = this.api.uiFacade;
+    const { scrollOffsetY, scrollSpeed } = this.api.settings.player;
+    ui.scrollToY(ui.getScrollContainer(), bounds.realBounds.y + scrollOffsetY, scrollSpeed);
   }
 
   loopCurrentBar(): void {
@@ -200,10 +275,20 @@ export class PlayerEngine {
   }
 
   clearLoop(): void {
-    this.api.clearPlaybackRangeHighlight();
-    this.api.playbackRange = null;
+    this.clearRangeHighlight();
     this.storeLoopRange(null);
     this.setLoopEnabled(false);
+  }
+
+  /**
+   * alphaTab's clearPlaybackRangeHighlight only hides the markers: it keeps the selected beats and
+   * redraws them after the next render (crashing if they're no longer rendered, e.g. after a track
+   * switch). A zero-length selection is drawn as nothing, so it replaces the old one for good.
+   */
+  private clearRangeHighlight() {
+    const beat = this.displayedTrack().staves[0]?.bars[0]?.voices[0]?.beats[0];
+    if (beat) this.api.highlightPlaybackRange(beat, beat);
+    else this.api.clearPlaybackRangeHighlight();
   }
 
   private storeLoopRange(range: TickRange | null) {
@@ -256,8 +341,16 @@ export class PlayerEngine {
     return this.score.tracks[index]!;
   }
 
+  private displayedPartId(): number | undefined {
+    const index = this.displayedTrack().index;
+    for (const [partId, i] of this.trackIndexByPart) if (i === index) return partId;
+    return undefined;
+  }
+
   selectTrack(partId: number): void {
-    if (!this.trackIndexByPart.has(partId)) return;
+    if (!this.trackIndexByPart.has(partId) || partId === this.displayedPartId()) return;
+    // A loop picked on one part (e.g. a lead solo) rarely makes sense on another; start fresh.
+    this.clearLoop();
     this.patchSettings({ partId });
     this.api.renderTracks([this.displayedTrack()]);
   }
@@ -316,7 +409,7 @@ export class PlayerEngine {
     this.api.stop();
     this.detachVideo();
     this.patchSettings({ source });
-    this.store.setState({ canPlay: false, speedOptions: null });
+    this.store.setState({ canPlay: false });
 
     const mode = playerModeFor(source);
     if (this.api.settings.player.playerMode !== mode) {
@@ -348,7 +441,7 @@ export class PlayerEngine {
     this.media?.dispose();
     this.media = new YouTubeMediaHandler(video, output);
     output.handler = this.media;
-    this.store.setState({ canPlay: true, speedOptions: video.getAvailablePlaybackRates() });
+    this.store.setState({ canPlay: true });
     this.setSpeed(this.settings.speed);
     this.applyPlaybackSettings();
   }
@@ -367,4 +460,8 @@ export class PlayerEngine {
     if (state === YtState.Playing && !playing) this.api.play();
     if ((state === YtState.Paused || state === YtState.Ended) && playing) this.api.pause();
   }
+}
+
+function sameRange(a: TickRange | null, b: TickRange | null): boolean {
+  return a === b || (!!a && !!b && a.startTick === b.startTick && a.endTick === b.endTick);
 }

@@ -7,6 +7,7 @@ const PATHS = {
   skipBack: "M18 6l-7 6 7 6zM7 6v12",
   skipForward: "M6 6l7 6-7 6zM17 6v12",
   loop: "M17 3l3 3-3 3M4 11V9a3 3 0 013-3h13M7 21l-3-3 3-3M20 13v2a3 3 0 01-3 3H4",
+  sections: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
   close: "M6 6l12 12M18 6L6 18",
   upload: "M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3",
   search: "M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4",

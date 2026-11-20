@@ -111,3 +111,31 @@
   color: var(--chalk-muted);
   font-size: var(--text-sm);
 }
+
+/* Below this width the full spacing no longer fits every control; tighten it before resorting to scrolling. */
+@media (max-width: 1500px) {
+  .dock {
+    gap: var(--s4);
+    padding: 0 var(--s4);
+  }
+
+  .group {
+    gap: var(--s2);
+  }
+
+  .readouts {
+    gap: var(--s3);
+  }
+}
+
+/* Per-section loop button in the Sections menu; teal like every other loop control. */
+.sectionLoop.sectionLoop {
+  flex: none;
+  width: 30px;
+  height: 30px;
+}
+
+.sectionLoop.sectionLoop:hover:not(:disabled),
+.sectionLoop.sectionLoop[aria-pressed="true"] {
+  color: var(--teal);
+}

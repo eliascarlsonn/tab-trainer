@@ -22,8 +22,6 @@ export interface EngineState {
   /** Tempo at the cursor, including the speed setting. */
   tempo: number;
   sections: SectionMarker[];
-  /** Discrete speeds the video supports; `null` means any speed works. */
-  speedOptions: number[] | null;
   trainerPasses: number;
   /** Bars covered by the current loop range, for display. */
   loopBars: { start: number; end: number } | null;
@@ -43,7 +41,6 @@ export function initialEngineState(settings: PracticeSettings): EngineState {
     barCount: 0,
     tempo: 0,
     sections: [],
-    speedOptions: null,
     trainerPasses: 0,
     loopBars: null,
     settings,

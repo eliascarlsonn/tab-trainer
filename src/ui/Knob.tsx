@@ -1,6 +1,6 @@
 import { useRef, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { cx } from "@/lib/cx";
-import { clamp } from "@/lib/math";
+import { clamp, roundTo } from "@/lib/math";
 import styles from "./Knob.module.css";
 
 interface KnobProps {
@@ -11,10 +11,13 @@ interface KnobProps {
   step: number;
   /** Value restored on double-click. */
   defaultValue: number;
+  /**
+   * Where the lit arc starts. Defaults to `min`, so the arc fills up to the pointer like a level.
+   * Pass the center (e.g. 0 for ±semitones) for bipolar controls that light up outward from it.
+   */
+  origin?: number;
   format: (value: number) => string;
   onChange: (value: number) => void;
-  /** Restricts the knob to these values (e.g. speeds a video supports). */
-  options?: readonly number[] | null;
   disabled?: boolean;
   /** Short note shown instead of the value when disabled. */
   disabledNote?: string;
@@ -47,27 +50,19 @@ export function Knob({
   max,
   step,
   defaultValue,
+  origin = min,
   format,
   onChange,
-  options,
   disabled,
   disabledNote,
 }: KnobProps) {
   const drag = useRef<{ y: number; value: number } | null>(null);
   const ratio = (clamp(value, min, max) - min) / (max - min);
   const angle = START_ANGLE + ratio * SWEEP;
-  const zeroAngle = START_ANGLE + ((clamp(defaultValue, min, max) - min) / (max - min)) * SWEEP;
+  const originAngle = START_ANGLE + ((clamp(origin, min, max) - min) / (max - min)) * SWEEP;
 
-  /** Moves by `steps` increments, honoring discrete options when present. */
-  const nudge = (steps: number) => {
-    if (options?.length) {
-      const index = options.findIndex((o) => o >= value - 1e-6);
-      const current = index === -1 ? options.length - 1 : index;
-      onChange(options[clamp(current + steps, 0, options.length - 1)]!);
-    } else {
-      onChange(clamp(value + steps * step, min, max));
-    }
-  };
+  /** Moves by `steps` increments, landing on the step grid even if the value was off it. */
+  const nudge = (steps: number) => onChange(clamp(roundTo(value + steps * step, step), min, max));
 
   const onPointerDown = (e: PointerEvent) => {
     if (disabled) return;
@@ -79,7 +74,7 @@ export function Knob({
     if (!drag.current) return;
     const delta = ((drag.current.y - e.clientY) / PIXELS_PER_RANGE) * (max - min);
     const raw = clamp(drag.current.value + delta, min, max);
-    onChange(options?.length ? raw : Math.round(raw / step) * step);
+    onChange(roundTo(raw, step));
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -129,8 +124,8 @@ export function Knob({
       >
         <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden="true">
           <path d={arcPath(START_ANGLE, START_ANGLE + SWEEP)} className={styles.track} />
-          {!disabled && Math.abs(angle - zeroAngle) > 0.5 && (
-            <path d={arcPath(Math.min(angle, zeroAngle), Math.max(angle, zeroAngle))} className={styles.value} />
+          {!disabled && Math.abs(angle - originAngle) > 0.5 && (
+            <path d={arcPath(Math.min(angle, originAngle), Math.max(angle, originAngle))} className={styles.value} />
           )}
           <circle cx={CENTER} cy={CENTER} r={RADIUS - 6} className={styles.cap} />
           <line x1={pointerBase.x} y1={pointerBase.y} x2={pointer.x} y2={pointer.y} className={styles.pointer} />
