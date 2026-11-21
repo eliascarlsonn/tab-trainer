@@ -68,3 +68,18 @@
   flex: 1;
   accent-color: var(--amber);
 }
+
+.level {
+  display: grid;
+  min-width: 44px;
+  color: var(--chalk);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-align: right;
+}
+
+.levelMode {
+  color: var(--chalk-faint);
+  font-size: var(--text-xs);
+}

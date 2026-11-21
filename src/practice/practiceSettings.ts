@@ -9,8 +9,8 @@ export interface TickRange {
 export interface TrackMix {
   muted: boolean;
   solo: boolean;
-  /** 0–1 */
-  volume: number;
+  /** 0–1 when set by hand; null follows the track on screen (see trackVolume). */
+  volume: number | null;
 }
 
 export interface TrainerSettings {
@@ -42,6 +42,8 @@ export interface PracticeSettings {
   source: PlaybackSource;
   syncOffsetMs: number;
   mixer: Record<number, TrackMix>;
+  /** Format of `mixer`; 2 added automatic track volumes. */
+  mixerVersion: number;
   notation: NotationMode;
   zoom: number;
   videoVisible: boolean;
@@ -52,7 +54,24 @@ export const PITCH_RANGE = { min: -12, max: 12, step: 1 } as const;
 export const VOLUME_RANGE = { min: 0, max: 1, step: 0.05 } as const;
 export const ZOOM_RANGE = { min: 0.6, max: 1.6, step: 0.1 } as const;
 
-export const DEFAULT_TRACK_MIX: TrackMix = { muted: false, solo: false, volume: 1 };
+export const DEFAULT_TRACK_MIX: TrackMix = { muted: false, solo: false, volume: null };
+
+/** Tracks other than the one on screen play this much quieter, so the part being practiced stands out. */
+export const BACKGROUND_TRACK_LEVEL = 0.5;
+
+/** The volume a track plays at: its own setting, or full when on screen and lowered otherwise. */
+export function trackVolume(mix: TrackMix, shown: boolean): number {
+  return mix.volume ?? (shown ? 1 : BACKGROUND_TRACK_LEVEL);
+}
+
+const MIXER_VERSION = 2;
+
+/** Before automatic volumes, 100% was the default and can't be told apart from untouched. */
+function migrateMixer(mixer: Record<number, TrackMix>): Record<number, TrackMix> {
+  return Object.fromEntries(
+    Object.entries(mixer).map(([partId, mix]) => [partId, mix.volume === 1 ? { ...mix, volume: null } : mix]),
+  );
+}
 
 const PREFERRED_ROLES: TrackRole[] = ["guitar", "bass", "drums", "other", "vocals"];
 
@@ -81,6 +100,7 @@ export function defaultPracticeSettings(song: Song): PracticeSettings {
     source: { kind: "synth" },
     syncOffsetMs: 0,
     mixer: {},
+    mixerVersion: MIXER_VERSION,
     notation: "tab",
     zoom: 1,
     videoVisible: true,
@@ -91,8 +111,12 @@ const repository = collection<PracticeSettings>("practice");
 
 export async function loadPracticeSettings(song: Song): Promise<PracticeSettings> {
   const stored = await repository.get(song.id);
+  const defaults = defaultPracticeSettings(song);
+  if (!stored) return defaults;
   // Merging over defaults keeps older saved settings valid when new fields are added.
-  return { ...defaultPracticeSettings(song), ...stored };
+  const settings = { ...defaults, ...stored };
+  if (stored.mixerVersion === MIXER_VERSION) return settings;
+  return { ...settings, mixer: migrateMixer(stored.mixer ?? {}), mixerVersion: MIXER_VERSION };
 }
 
 export function savePracticeSettings(songId: string, settings: PracticeSettings): Promise<void> {

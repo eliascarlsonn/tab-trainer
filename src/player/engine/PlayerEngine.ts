@@ -4,6 +4,7 @@ import type { Song } from "@/library/song";
 import { clamp } from "@/lib/math";
 import {
   DEFAULT_TRACK_MIX,
+  trackVolume,
   PITCH_RANGE,
   SPEED_RANGE,
   VOLUME_RANGE,
@@ -350,6 +351,7 @@ export class PlayerEngine {
     // A loop picked on one part (e.g. a lead solo) rarely makes sense on another; start fresh.
     this.clearLoop();
     this.patchSettings({ partId });
+    this.applyMixer();
     this.api.renderTracks([this.displayedTrack()]);
   }
 
@@ -364,12 +366,13 @@ export class PlayerEngine {
   }
 
   private applyMixer() {
+    const shown = this.displayedPartId();
     for (const [partId, index] of this.trackIndexByPart) {
       const track = this.score.tracks[index]!;
       const mix = this.mixFor(partId);
       this.api.changeTrackMute([track], mix.muted);
       this.api.changeTrackSolo([track], mix.solo);
-      this.api.changeTrackVolume([track], mix.volume);
+      this.api.changeTrackVolume([track], trackVolume(mix, partId === shown));
     }
   }
 
