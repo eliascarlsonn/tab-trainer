@@ -31,7 +31,7 @@ export function LibraryScreen() {
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.brand}>
-          <span className={styles.pilot} aria-hidden="true" />
+          <img className={styles.logo} src={`${import.meta.env.BASE_URL}logo.svg`} alt="" width={30} height={30} />
           Tab Trainer
         </div>
         <div className={styles.actions}>

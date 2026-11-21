@@ -1,3 +1,5 @@
+<p align="center"><img src="public/logo.svg" alt="" width="96" /></p>
+
 # Tab Trainer
 
 A practice player for guitar tabs: loop, speed trainer, pitch shift, per-track mixer, and playback

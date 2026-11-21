@@ -23,13 +23,8 @@
   letter-spacing: 0.01em;
 }
 
-/* The pilot light: the one signal that the app is "on". */
-.pilot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--amber);
-  box-shadow: var(--amber-glow);
+.logo {
+  display: block;
 }
 
 .actions {
