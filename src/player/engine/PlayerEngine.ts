@@ -535,7 +535,7 @@ export class PlayerEngine {
   setSource(source: PlaybackSource): void {
     this.api.stop();
     this.detachVideo();
-    this.patchSettings({ source });
+    this.patchSettings({ source, sourceChosen: true });
     this.store.setState({ canPlay: false });
 
     const mode = playerModeFor(source);

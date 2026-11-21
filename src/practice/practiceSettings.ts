@@ -40,6 +40,8 @@ export interface PracticeSettings {
   loopRange: TickRange | null;
   trainer: TrainerSettings;
   source: PlaybackSource;
+  /** Whether the source was picked by hand; until then each song follows `defaultSource`. */
+  sourceChosen: boolean;
   syncOffsetMs: number;
   mixer: Record<number, TrackMix>;
   /** Format of `mixer`; 2 added automatic track volumes. */
@@ -86,6 +88,15 @@ export function defaultPartId(song: Song): number | undefined {
   return captured.values().next().value;
 }
 
+/** Play along with the original recording when one was captured, otherwise with the tab audio. */
+export function defaultSource(song: Song): PlaybackSource {
+  const original = song.videos.find((v) => v.kind === "original");
+  return original ? { kind: "video", videoId: original.videoId } : { kind: "synth" };
+}
+
+const isAvailable = (song: Song, source: PlaybackSource) =>
+  source.kind === "synth" || song.videos.some((v) => v.videoId === source.videoId);
+
 export function defaultPracticeSettings(song: Song): PracticeSettings {
   return {
     partId: defaultPartId(song),
@@ -97,7 +108,8 @@ export function defaultPracticeSettings(song: Song): PracticeSettings {
     loopEnabled: false,
     loopRange: null,
     trainer: { enabled: false, step: 0.05, target: 1, passesPerStep: 2 },
-    source: { kind: "synth" },
+    source: defaultSource(song),
+    sourceChosen: false,
     syncOffsetMs: 0,
     mixer: {},
     mixerVersion: MIXER_VERSION,
@@ -115,8 +127,14 @@ export async function loadPracticeSettings(song: Song): Promise<PracticeSettings
   if (!stored) return defaults;
   // Merging over defaults keeps older saved settings valid when new fields are added.
   const settings = { ...defaults, ...stored };
-  if (stored.mixerVersion === MIXER_VERSION) return settings;
-  return { ...settings, mixer: migrateMixer(stored.mixer ?? {}), mixerVersion: MIXER_VERSION };
+  if (stored.mixerVersion !== MIXER_VERSION) {
+    settings.mixer = migrateMixer(stored.mixer ?? {});
+    settings.mixerVersion = MIXER_VERSION;
+  }
+  // A source saved only because it was the default follows the current default; so does a picked
+  // video that a newer capture of the song no longer has.
+  if (!settings.sourceChosen || !isAvailable(song, settings.source)) settings.source = defaults.source;
+  return settings;
 }
 
 export function savePracticeSettings(songId: string, settings: PracticeSettings): Promise<void> {
