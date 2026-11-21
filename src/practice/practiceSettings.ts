@@ -58,13 +58,13 @@ const PREFERRED_ROLES: TrackRole[] = ["guitar", "bass", "drums", "other", "vocal
 
 /** The track a player most likely wants: Songsterr's popular pick if captured, else the first guitar. */
 export function defaultPartId(song: Song): number | undefined {
-  const captured = new Set(song.tracks.map((t) => t.partId));
+  const captured = new Set(song.catalog.filter((t) => t.captured).map((t) => t.partId));
   if (song.defaultPartId !== undefined && captured.has(song.defaultPartId)) return song.defaultPartId;
   for (const role of PREFERRED_ROLES) {
     const entry = song.catalog.find((t) => t.captured && t.role === role);
     if (entry) return entry.partId;
   }
-  return song.tracks[0]?.partId;
+  return captured.values().next().value;
 }
 
 export function defaultPracticeSettings(song: Song): PracticeSettings {

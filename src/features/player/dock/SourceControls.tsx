@@ -73,7 +73,13 @@ function SourcePicker({ song }: { song: Song }) {
             >
               Tab audio
             </MenuItem>
-            <MenuHeading>{song.videos.length ? "Synced videos" : "No synced videos were captured"}</MenuHeading>
+            <MenuHeading>
+              {song.videos.length
+                ? "Synced videos"
+                : song.origin === "songsterr"
+                  ? "No synced videos were captured"
+                  : "No synced videos"}
+            </MenuHeading>
             {song.videos.map((video) => (
               <MenuItem
                 key={video.videoId}

@@ -9,7 +9,7 @@ function describe(titles: string[]): string {
   return `Added ${titles.length} songs.`;
 }
 
-/** Imports HAR files into the library and reports the result in plain language. */
+/** Imports Songsterr captures and score files into the library and reports the result in plain language. */
 export function useImport() {
   const importFiles = useLibrary((s) => s.importFiles);
   const [status, setStatus] = useState<ImportStatus>({ kind: "idle" });

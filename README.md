@@ -1,9 +1,13 @@
 # Tab Trainer
 
-A private practice player for Songsterr tabs: loop, speed trainer, pitch shift, per-track mixer,
-and playback synced to the original recording on YouTube.
+A practice player for guitar tabs: loop, speed trainer, pitch shift, per-track mixer, and playback
+synced to the original recording on YouTube.
 
-The app never contacts Songsterr. You save a song from your own browser session and import the file.
+Import songs saved from Songsterr, Guitar Pro files (.gp, .gp3, .gp4, .gp5, .gpx) or MusicXML
+(.musicxml, .mxl, .xml). Your library stays in your browser; nothing is uploaded, and the app never
+contacts Songsterr.
+
+_Not affiliated with or endorsed by Songsterr._
 
 ## Run it
 
@@ -14,12 +18,18 @@ npm run dev        # http://localhost:5173
 
 ## Add a song
 
+Drop a Guitar Pro or MusicXML file onto the app, or click **Import**. Importing the same file
+again updates the existing entry.
+
+### Saving a song from Songsterr
+
 1. Open the song on songsterr.com in Chrome or Edge.
 2. Press F12, open the **Network** tab, tick **Disable cache**, reload the page.
 3. Click through every track you want. Turn the video on if you want to play along with it.
 4. Click the download arrow (**Export HAR**) and drop the `.har` file into the app.
 
-Importing the same song again adds any newly captured tracks to the existing entry.
+Importing the same song again adds any newly captured tracks to the existing entry. Synced YouTube
+playback is available for Songsterr songs whose video was captured.
 
 ## Keyboard
 
@@ -41,7 +51,7 @@ Drag across the tab to select a loop range.
 ```
 src/
   songsterr/     Pure parsing: HAR → captured song → alphaTab Score (convert/ holds one builder per model level)
-  library/       Song model, import pipeline, IndexedDB persistence, library store
+  library/       Song model, import pipeline (Songsterr captures, score files), IndexedDB persistence
   practice/      Per-song practice settings and their persistence
   player/
     engine/      PlayerEngine: owns alphaTab, exposes practice controls, state in a zustand store

@@ -110,6 +110,13 @@
   color: var(--chalk);
 }
 
+.guideTitle {
+  margin-bottom: calc(-1 * var(--s3));
+  font-size: var(--text-xl);
+  font-weight: 700;
+  font-stretch: 85%;
+}
+
 .guidePanel {
   padding: var(--s5);
   border: 1px solid var(--line);

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { SCORE_FILE_EXTENSIONS } from "@/library/scoreFile";
 import { sortByRecent, useLibrary } from "@/library/useLibrary";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
@@ -8,7 +9,7 @@ import { useFileDrop } from "./useFileDrop";
 import { useImport } from "./useImport";
 import styles from "./LibraryScreen.module.css";
 
-const ACCEPTED_FILES = ".har,application/json";
+const ACCEPTED_FILES = [".har", "application/json", ...SCORE_FILE_EXTENSIONS].join(",");
 
 export function LibraryScreen() {
   const songs = useLibrary((s) => s.songs);
@@ -36,11 +37,11 @@ export function LibraryScreen() {
         <div className={styles.actions}>
           {!isEmpty && (
             <Button variant="ghost" onClick={() => setShowGuide((v) => !v)}>
-              {showGuide ? "Hide guide" : "How to capture a song"}
+              {showGuide ? "Hide guide" : "Saving from Songsterr"}
             </Button>
           )}
           <Button variant="primary" icon="upload" onClick={() => fileInput.current?.click()}>
-            Import capture
+            Import
           </Button>
           <input
             ref={fileInput}
@@ -58,7 +59,7 @@ export function LibraryScreen() {
 
       {status.kind !== "idle" && (
         <div className={styles.status} data-kind={status.kind} role="status">
-          <span>{status.kind === "working" ? "Reading capture…" : status.message}</span>
+          <span>{status.kind === "working" ? "Importing…" : status.message}</span>
           {status.kind !== "working" && (
             <button type="button" className={styles.statusClose} onClick={dismiss} aria-label="Dismiss">
               <Icon name="close" size={14} />
@@ -72,14 +73,15 @@ export function LibraryScreen() {
           <section className={styles.empty}>
             <h1 className={styles.headline}>Add your first song</h1>
             <p className={styles.lede}>
-              Save a song from Songsterr with your browser, then drop the file anywhere on this page. Everything stays
-              on this computer.
+              Drop a song saved from Songsterr, a Guitar Pro file or a MusicXML file anywhere on this page. Everything
+              stays on this computer.
             </p>
-            <CaptureGuide />
             <button type="button" className={styles.dropzone} onClick={() => fileInput.current?.click()}>
               <Icon name="upload" size={22} />
-              Drop a .har file here or click to choose one
+              Drop files here or click to choose them
             </button>
+            <h2 className={styles.guideTitle}>Saving a song from Songsterr</h2>
+            <CaptureGuide />
           </section>
         ) : (
           <>

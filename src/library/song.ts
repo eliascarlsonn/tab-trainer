@@ -22,15 +22,10 @@ export interface TrackEntry {
   captured: boolean;
 }
 
-/** A song in the local library. Persisted as-is. */
-export interface Song {
+interface SongBase {
   id: string;
-  songId: number;
-  revisionId: number;
   title: string;
   artist: string;
-  /** Raw captured tab data, one entry per track, sorted by partId. */
-  tracks: SsTrack[];
   /** Complete track list of the song (including tracks that were not captured). */
   catalog: TrackEntry[];
   videos: VideoSource[];
@@ -39,8 +34,28 @@ export interface Song {
   lastPlayedAt: number | undefined;
 }
 
-const UNTITLED = "Untitled song";
-const UNKNOWN_ARTIST = "Unknown artist";
+/** A song captured from Songsterr; partIds are Songsterr's part numbers. */
+export interface SongsterrSong extends SongBase {
+  origin: "songsterr";
+  songId: number;
+  revisionId: number;
+  /** Raw captured tab data, one entry per track, sorted by partId. */
+  tracks: SsTrack[];
+}
+
+/** A song imported from a score file (Guitar Pro, MusicXML); partIds are track indexes. */
+export interface FileSong extends SongBase {
+  origin: "file";
+  fileName: string;
+  /** The original file, parsed by alphaTab when the song is opened. */
+  data: Uint8Array;
+}
+
+/** A song in the local library. Persisted as-is. */
+export type Song = SongsterrSong | FileSong;
+
+export const UNTITLED = "Untitled song";
+export const UNKNOWN_ARTIST = "Unknown artist";
 
 const VIDEO_KIND_ORDER: VideoKind[] = ["original", "backing", "solo", "playthrough", "alternative"];
 
@@ -109,8 +124,9 @@ function buildVideos(videos: SsVideoPoints[]): VideoSource[] {
     .filter((v) => !seen.has(v.videoId) && !!seen.add(v.videoId));
 }
 
-export function songFromCapture(captured: CapturedSong, now = Date.now()): Song {
+export function songFromCapture(captured: CapturedSong, now = Date.now()): SongsterrSong {
   return {
+    origin: "songsterr",
     id: songIdFor(captured.songId),
     songId: captured.songId,
     revisionId: captured.revisionId,
@@ -125,12 +141,22 @@ export function songFromCapture(captured: CapturedSong, now = Date.now()): Song 
   };
 }
 
+/** Songs saved before file imports existed have no `origin`; they all came from Songsterr. */
+export function normalizeSong(stored: Song | Omit<SongsterrSong, "origin">): Song {
+  return "origin" in stored ? stored : { ...stored, origin: "songsterr" };
+}
+
 /**
- * Combines a fresh capture with an existing library entry of the same song.
- * A newer revision replaces the old data; the same revision gains any newly captured tracks.
+ * Combines a fresh import with an existing library entry of the same song.
+ * A Songsterr capture of the same revision gains any newly captured tracks; anything else
+ * replaces the old data and keeps the library history.
  */
 export function mergeSongs(existing: Song, incoming: Song): Song {
-  if (incoming.revisionId !== existing.revisionId) {
+  if (
+    existing.origin !== "songsterr" ||
+    incoming.origin !== "songsterr" ||
+    incoming.revisionId !== existing.revisionId
+  ) {
     return { ...incoming, importedAt: existing.importedAt, lastPlayedAt: existing.lastPlayedAt };
   }
 

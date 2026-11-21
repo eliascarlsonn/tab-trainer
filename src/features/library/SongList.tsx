@@ -12,7 +12,9 @@ interface SongListProps {
 
 function trackSummary(song: Song): string {
   const captured = song.catalog.filter((t) => t.captured).length;
-  return captured === song.catalog.length ? `${captured} tracks` : `${captured} of ${song.catalog.length} tracks`;
+  const total = song.catalog.length;
+  const noun = total === 1 ? "track" : "tracks";
+  return captured === total ? `${total} ${noun}` : `${captured} of ${total} ${noun}`;
 }
 
 export function SongList({ songs, onRemove }: SongListProps) {

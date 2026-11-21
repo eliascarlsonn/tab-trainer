@@ -15,7 +15,6 @@ import {
   type TrackMix,
   type TrainerSettings,
 } from "@/practice/practiceSettings";
-import { buildScore } from "@/songsterr/convert/scoreBuilder";
 import { buildSyncPoints } from "../sync/syncPoints";
 import { completePass } from "../trainer/speedTrainer";
 import { YtState, type YtPlayer } from "../youtube/youtubeApi";
@@ -23,6 +22,7 @@ import { YouTubeMediaHandler } from "../youtube/YouTubeMediaHandler";
 import { createAlphaTabSettings, playerModeFor } from "./alphaTabSettings";
 import { initialEngineState, type EngineState } from "./engineState";
 import { beatsSpanning, isMelodic, sectionBarRange, sectionsOf } from "./scoreQueries";
+import { scoreForSong } from "./songScore";
 
 /**
  * Owns one alphaTab instance for one song and exposes practice-oriented controls.
@@ -54,9 +54,7 @@ export class PlayerEngine {
       createAlphaTabSettings({ scrollElement, zoom: settings.zoom, source: settings.source }),
     );
 
-    const vocalPartIds = new Set(song.catalog.filter((t) => t.role === "vocals").map((t) => t.partId));
-    this.score = buildScore({ ...song, vocalPartIds }, this.api.settings);
-    this.trackIndexByPart = new Map(song.tracks.map((t, i) => [t.partId, i]));
+    ({ score: this.score, trackIndexByPart: this.trackIndexByPart } = scoreForSong(song, this.api.settings));
 
     this.bindEvents();
     this.applyNotation(settings.notation);
@@ -386,9 +384,13 @@ export class PlayerEngine {
   private applyNotation(notation: NotationMode) {
     const vocalParts = new Set(this.song.catalog.filter((t) => t.role === "vocals").map((t) => t.partId));
     for (const [partId, index] of this.trackIndexByPart) {
-      const staff = this.score.tracks[index]?.staves[0];
-      if (!staff || staff.isPercussion || vocalParts.has(partId)) continue;
-      staff.showStandardNotation = notation === "tabAndScore";
+      if (vocalParts.has(partId)) continue;
+      for (const staff of this.score.tracks[index]?.staves ?? []) {
+        // Only stringed staves have a tab; drums, piano or notation-only imports keep their notation.
+        if (staff.isPercussion || !staff.isStringed) continue;
+        staff.showTablature = true;
+        staff.showStandardNotation = notation === "tabAndScore";
+      }
     }
   }
 

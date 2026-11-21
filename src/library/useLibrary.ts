@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { importCaptures, type ImportOutcome } from "./importCaptures";
-import type { Song } from "./song";
+import { importSongs, type ImportOutcome } from "./importSongs";
+import { normalizeSong, type Song } from "./song";
 import { songRepository } from "./songRepository";
 
 interface LibraryState {
@@ -25,11 +25,11 @@ export const useLibrary = create<LibraryState>()((setState, getState) => {
     loaded: false,
 
     async load() {
-      setState({ songs: byId(await songRepository.all()), loaded: true });
+      setState({ songs: byId((await songRepository.all()).map(normalizeSong)), loaded: true });
     },
 
     async importFiles(files) {
-      const outcome = await importCaptures(files, (id) => getState().songs[id]);
+      const outcome = await importSongs(files, (id) => getState().songs[id]);
       await save(outcome.songs);
       return outcome;
     },
