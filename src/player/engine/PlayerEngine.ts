@@ -25,6 +25,10 @@ import { initialEngineState, type EngineState } from "./engineState";
 import { beatsSpanning, isMelodic, sectionBarRange, sectionsOf } from "./scoreQueries";
 import { scoreForSong } from "./songScore";
 
+/** How far (px) above and below the pointer to look for a line of tab when it's between lines. */
+const LINE_SEARCH_RANGE = 240;
+const LINE_SEARCH_STEP = 12;
+
 /**
  * Owns one alphaTab instance for one song and exposes practice-oriented controls.
  * All observable state lives in `store`; UI code reads it and calls the methods below.
@@ -328,17 +332,24 @@ export class PlayerEngine {
 
   /**
    * Moves one edge of the highlighted loop to the beat at a point (host coordinates), as a live
-   * preview; `finishLoopResize` turns it into the loop. `fallbackY` is tried when the point is
-   * outside the staff, so a sideways drag works wherever the pointer is vertically.
+   * preview; `finishLoopResize` turns it into the loop. Between lines of tab the nearest line is
+   * used, and `fallbackY` (the handle's own line) when none is close. With `wholeBars` the edge
+   * snaps to the start or end of the bar under the point.
    */
-  resizeLoop(edge: "start" | "end", x: number, y: number, fallbackY: number): void {
+  resizeLoop(edge: "start" | "end", x: number, y: number, fallbackY: number, wholeBars = false): void {
     const lookup = this.api.boundsLookup;
     const current = this.highlighted;
     if (!lookup || !current) return;
     const offset = this.surfaceOffset();
-    const beat =
-      lookup.getBeatAtPos(x - offset.x, y - offset.y) ?? lookup.getBeatAtPos(x - offset.x, fallbackY - offset.y);
-    if (!beat || beat.voice.bar.staff.track !== this.displayedTrack()) return;
+    const beatAt = (atY: number) => lookup.getBeatAtPos(x - offset.x, atY - offset.y);
+    let hit = beatAt(y);
+    for (let d = LINE_SEARCH_STEP; !hit && d <= LINE_SEARCH_RANGE; d += LINE_SEARCH_STEP) {
+      hit = beatAt(y + d) ?? beatAt(y - d);
+    }
+    hit ??= beatAt(fallbackY);
+    if (!hit || hit.voice.bar.staff.track !== this.displayedTrack()) return;
+    const barBeats = hit.voice.beats;
+    const beat = wholeBars ? ((edge === "start" ? barBeats[0] : barBeats.at(-1)) ?? hit) : hit;
 
     const order = (b: model.Beat) => b.absolutePlaybackStart;
     let { start, end } = current;
