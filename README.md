@@ -46,8 +46,8 @@ playback is available for Songsterr songs whose video was captured.
 | C     | Count-in              |
 | V     | Show / hide the video |
 
-Drag across the tab to select a loop range, then drag the handles on its start and end to adjust it
-(hold Shift to snap to whole bars; drag near the top or bottom edge to scroll).
+Drag across the tab to select a loop range, then drag the handles on its start and end to adjust it.
+While dragging either way, hold Shift to snap to whole bars, or move near the top or bottom edge to scroll.
 
 ## Architecture
 

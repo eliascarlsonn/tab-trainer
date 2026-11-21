@@ -25,6 +25,8 @@ import { initialEngineState, type EngineState } from "./engineState";
 import { beatsSpanning, isMelodic, sectionBarRange, sectionsOf } from "./scoreQueries";
 import { scoreForSong } from "./songScore";
 
+const beatOrder = (beat: model.Beat) => beat.absolutePlaybackStart;
+
 /** How far (px) above and below the pointer to look for a line of tab when it's between lines. */
 const LINE_SEARCH_RANGE = 240;
 const LINE_SEARCH_STEP = 12;
@@ -50,6 +52,9 @@ export class PlayerEngine {
   private highlighted: { start: model.Beat; end: model.Beat } | undefined;
   /** Set while the highlight is replaced by an empty one, so no handles are shown for it. */
   private clearingHighlight = false;
+  /** Beat where a loop is being painted from, and whether the drag has left it yet. */
+  private paintAnchor: model.Beat | undefined;
+  private painting = false;
 
   constructor(
     private readonly host: HTMLElement,
@@ -331,37 +336,80 @@ export class PlayerEngine {
   }
 
   /**
-   * Moves one edge of the highlighted loop to the beat at a point (host coordinates), as a live
-   * preview; `finishLoopResize` turns it into the loop. Between lines of tab the nearest line is
-   * used, and `fallbackY` (the handle's own line) when none is close. With `wholeBars` the edge
-   * snaps to the start or end of the bar under the point.
+   * The displayed track's beat at a point (host coordinates). Between lines of tab the nearest
+   * line is used, then `fallbackY` if no line is close.
    */
-  resizeLoop(edge: "start" | "end", x: number, y: number, fallbackY: number, wholeBars = false): void {
+  private beatAtPoint(x: number, y: number, fallbackY?: number): model.Beat | undefined {
     const lookup = this.api.boundsLookup;
-    const current = this.highlighted;
-    if (!lookup || !current) return;
+    if (!lookup) return undefined;
     const offset = this.surfaceOffset();
     const beatAt = (atY: number) => lookup.getBeatAtPos(x - offset.x, atY - offset.y);
     let hit = beatAt(y);
     for (let d = LINE_SEARCH_STEP; !hit && d <= LINE_SEARCH_RANGE; d += LINE_SEARCH_STEP) {
       hit = beatAt(y + d) ?? beatAt(y - d);
     }
-    hit ??= beatAt(fallbackY);
-    if (!hit || hit.voice.bar.staff.track !== this.displayedTrack()) return;
+    if (!hit && fallbackY !== undefined) hit = beatAt(fallbackY);
+    return hit && hit.voice.bar.staff.track === this.displayedTrack() ? hit : undefined;
+  }
+
+  /**
+   * Moves one edge of the highlighted loop to the beat at a point (host coordinates), as a live
+   * preview; `finishLoopResize` turns it into the loop. `fallbackY` is the handle's own line, used
+   * when the point is far from any line. With `wholeBars` the edge snaps to the start or end of
+   * the bar under the point.
+   */
+  resizeLoop(edge: "start" | "end", x: number, y: number, fallbackY: number, wholeBars = false): void {
+    const current = this.highlighted;
+    const hit = current && this.beatAtPoint(x, y, fallbackY);
+    if (!current || !hit) return;
     const barBeats = hit.voice.beats;
     const beat = wholeBars ? ((edge === "start" ? barBeats[0] : barBeats.at(-1)) ?? hit) : hit;
 
-    const order = (b: model.Beat) => b.absolutePlaybackStart;
     let { start, end } = current;
     // An edge stops one beat short of the other: alphaTab draws nothing for a range that starts
     // and ends on the same beat, which would lose the handles mid-drag.
-    if (edge === "start") start = order(beat) < order(end) ? beat : (end.previousBeat ?? start);
-    else end = order(beat) > order(start) ? beat : (start.nextBeat ?? end);
+    if (edge === "start") start = beatOrder(beat) < beatOrder(end) ? beat : (end.previousBeat ?? start);
+    else end = beatOrder(beat) > beatOrder(start) ? beat : (start.nextBeat ?? end);
     if (start !== current.start || end !== current.end) this.api.highlightPlaybackRange(start, end);
   }
 
   finishLoopResize(): void {
     if (this.highlighted) this.api.applyPlaybackRangeFromHighlight();
+  }
+
+  /**
+   * Painting a new loop is alphaTab's own drag selection, which applies whatever is highlighted
+   * when the button is released. These let the app adjust it while it's drawn: snapping to whole
+   * bars, and following the pointer while the score scrolls underneath.
+   */
+  startLoopPaint(x: number, y: number): void {
+    this.paintAnchor = this.beatAtPoint(x, y);
+    this.painting = false;
+  }
+
+  /**
+   * Re-highlights from where the drag started to the beat at a point. Runs after alphaTab's own
+   * update for the same mouse move, so this version is the one applied on release.
+   */
+  paintLoop(x: number, y: number, wholeBars: boolean): void {
+    const anchor = this.paintAnchor;
+    const beat = anchor && this.beatAtPoint(x, y);
+    if (!anchor || !beat) return;
+    // Like alphaTab: staying on the first beat is still a click (which seeks), not a selection.
+    if (beat === anchor && !wholeBars && !this.painting) return;
+    this.painting = true;
+    let [start, end] = beatOrder(anchor) <= beatOrder(beat) ? [anchor, beat] : [beat, anchor];
+    if (wholeBars) {
+      start = start.voice.beats[0] ?? start;
+      end = end.voice.beats.at(-1) ?? end;
+    }
+    if (start === end) end = start.nextBeat ?? end;
+    this.api.highlightPlaybackRange(start, end);
+  }
+
+  endLoopPaint(): void {
+    this.paintAnchor = undefined;
+    this.painting = false;
   }
 
   private storeLoopRange(range: TickRange | null) {
