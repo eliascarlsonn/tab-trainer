@@ -33,7 +33,7 @@ such as `localhost:5173`, sends songs to that address.)
 
 To capture a song by hand instead:
 
-1. Open the song on songsterr.com in Chrome or Edge.
+1. Open the song on songsterr.com.
 2. Press F12, open the **Network** tab, tick **Disable cache**, reload the page.
 3. Click the download arrow (**Export HAR**) and drop the `.har` file into the app.
 

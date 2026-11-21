@@ -3,7 +3,7 @@ import { bookmarkletHref } from "@/songsterr/bookmarklet";
 import styles from "./CaptureGuide.module.css";
 
 const STEPS = [
-  { title: "Open the song", body: "Go to the song on songsterr.com in Chrome or Edge." },
+  { title: "Open the song", body: "Go to the song on songsterr.com." },
   { title: "Record", body: "Press F12, open the Network tab, tick Disable cache, then reload the page." },
   {
     title: "Export and drop",
