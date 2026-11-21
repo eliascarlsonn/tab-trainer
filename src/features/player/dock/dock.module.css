@@ -63,7 +63,24 @@
   margin: 0;
   font-size: var(--text-md);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/*
+ * Room for the widest value each readout can show, so the dock doesn't shift while playing or
+ * when the speed changes the song length: "00:00 / 00:00", "000 / 000", "000".
+ */
+.timeReadout {
+  min-width: 10.5ch;
+}
+
+.barReadout {
+  min-width: 7.5ch;
+}
+
+.tempoReadout {
+  min-width: 3.5ch;
 }
 
 .faint {

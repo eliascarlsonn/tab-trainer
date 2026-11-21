@@ -25,21 +25,21 @@ export function TransportControls() {
       />
       <IconButton icon="skipForward" label="Next bar (Right arrow)" onClick={() => engine.skipBars(1)} />
       <dl className={styles.readouts}>
-        <div>
+        <div className={styles.timeReadout}>
           <dt>Time</dt>
           <dd>
             {formatClock(time)}
             <span className={styles.faint}> / {formatClock(end)}</span>
           </dd>
         </div>
-        <div>
+        <div className={styles.barReadout}>
           <dt>Bar</dt>
           <dd>
             {bar + 1}
             <span className={styles.faint}> / {barCount}</span>
           </dd>
         </div>
-        <div>
+        <div className={styles.tempoReadout}>
           <dt>Tempo</dt>
           <dd>{tempo ? Math.round(tempo) : "–"}</dd>
         </div>
