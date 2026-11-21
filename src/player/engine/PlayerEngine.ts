@@ -1,4 +1,4 @@
-import { AlphaTabApi, model, synth } from "@coderline/alphatab";
+import { AlphaTabApi, model, synth, type PlaybackHighlightChangeEventArgs } from "@coderline/alphatab";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import type { Song } from "@/library/song";
 import { clamp } from "@/lib/math";
@@ -42,9 +42,13 @@ export class PlayerEngine {
    * worker they arrive asynchronously, so they must be told apart from the user's own selections.
    */
   private readonly pendingRangeEchoes: (TickRange | null)[] = [];
+  /** Beats currently highlighted as the loop, kept so one edge can be dragged. */
+  private highlighted: { start: model.Beat; end: model.Beat } | undefined;
+  /** Set while the highlight is replaced by an empty one, so no handles are shown for it. */
+  private clearingHighlight = false;
 
   constructor(
-    host: HTMLElement,
+    private readonly host: HTMLElement,
     scrollElement: HTMLElement,
     private readonly song: Song,
     settings: PracticeSettings,
@@ -89,6 +93,7 @@ export class PlayerEngine {
       this.restoreLoopHighlight();
     });
     api.error.on((error) => set({ phase: "error", error: error.message }));
+    api.playbackRangeHighlightChanged.on((e) => this.onHighlightChanged(e));
     api.playerReady.on(() => this.onPlayerReady());
     api.playerStateChanged.on((e) => set({ playing: e.state === synth.PlayerState.Playing }));
     api.playerFinished.on(() => this.onLoopPassCompleted());
@@ -286,8 +291,66 @@ export class PlayerEngine {
    */
   private clearRangeHighlight() {
     const beat = this.displayedTrack().staves[0]?.bars[0]?.voices[0]?.beats[0];
+    this.clearingHighlight = true;
     if (beat) this.api.highlightPlaybackRange(beat, beat);
     else this.api.clearPlaybackRangeHighlight();
+    this.clearingHighlight = false;
+    this.highlighted = undefined;
+    this.store.setState({ loopEdges: null });
+  }
+
+  // ── Loop edge handles ────────────────────────────────────────────────────
+
+  /** alphaTab's highlight bounds are relative to its drawing surface, which sits inside the host's padding. */
+  private surfaceOffset() {
+    const surface = this.host.querySelector<HTMLElement>(".at-surface");
+    return { x: surface?.offsetLeft ?? 0, y: surface?.offsetTop ?? 0 };
+  }
+
+  private onHighlightChanged(e: PlaybackHighlightChangeEventArgs) {
+    const blocks = e.highlightBlocks ?? [];
+    const first = blocks[0];
+    const last = blocks.at(-1);
+    if (this.clearingHighlight || !e.startBeat || !e.endBeat || !first || !last) {
+      this.highlighted = undefined;
+      this.store.setState({ loopEdges: null });
+      return;
+    }
+    this.highlighted = { start: e.startBeat, end: e.endBeat };
+    const offset = this.surfaceOffset();
+    this.store.setState({
+      loopEdges: {
+        start: { x: offset.x + first.x, top: offset.y + first.y, height: first.h },
+        end: { x: offset.x + last.x + last.w, top: offset.y + last.y, height: last.h },
+      },
+    });
+  }
+
+  /**
+   * Moves one edge of the highlighted loop to the beat at a point (host coordinates), as a live
+   * preview; `finishLoopResize` turns it into the loop. `fallbackY` is tried when the point is
+   * outside the staff, so a sideways drag works wherever the pointer is vertically.
+   */
+  resizeLoop(edge: "start" | "end", x: number, y: number, fallbackY: number): void {
+    const lookup = this.api.boundsLookup;
+    const current = this.highlighted;
+    if (!lookup || !current) return;
+    const offset = this.surfaceOffset();
+    const beat =
+      lookup.getBeatAtPos(x - offset.x, y - offset.y) ?? lookup.getBeatAtPos(x - offset.x, fallbackY - offset.y);
+    if (!beat || beat.voice.bar.staff.track !== this.displayedTrack()) return;
+
+    const order = (b: model.Beat) => b.absolutePlaybackStart;
+    let { start, end } = current;
+    // An edge stops one beat short of the other: alphaTab draws nothing for a range that starts
+    // and ends on the same beat, which would lose the handles mid-drag.
+    if (edge === "start") start = order(beat) < order(end) ? beat : (end.previousBeat ?? start);
+    else end = order(beat) > order(start) ? beat : (start.nextBeat ?? end);
+    if (start !== current.start || end !== current.end) this.api.highlightPlaybackRange(start, end);
+  }
+
+  finishLoopResize(): void {
+    if (this.highlighted) this.api.applyPlaybackRangeFromHighlight();
   }
 
   private storeLoopRange(range: TickRange | null) {

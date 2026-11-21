@@ -17,12 +17,18 @@
   overflow-x: hidden;
 }
 
-.score {
-  /* alphaTab puts its cursor/selection layer at z-index 1000; keep that inside the score so
-     menus, the dock and the video panel stay on top. */
+/* Holds the score and the loop handles drawn over it, both from the same top-left corner. */
+.scoreFrame {
+  position: relative;
+  /* alphaTab puts its cursor/selection layer at z-index 1000; keep that (and the handles) inside
+     so menus, the dock and the video panel stay on top. */
   isolation: isolate;
   max-width: 1280px;
   margin: 0 auto;
+}
+
+.score {
+  isolation: isolate;
   padding: var(--s5) var(--s4) var(--s8);
 }
 

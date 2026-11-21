@@ -6,6 +6,7 @@ import { PlayerEngine } from "@/player/engine/PlayerEngine";
 import { loadPracticeSettings, savePracticeSettings, type PracticeSettings } from "@/practice/practiceSettings";
 import { EngineProvider } from "./engineContext";
 import { LoadingOverlay } from "./LoadingOverlay";
+import { LoopHandles } from "./LoopHandles";
 import { MixerSheet } from "./MixerSheet";
 import { PlayerHeader } from "./PlayerHeader";
 import { TransportDock } from "./dock/TransportDock";
@@ -73,7 +74,14 @@ function PlayerView({ song, initialSettings }: { song: Song; initialSettings: Pr
   return (
     <div className={styles.shell}>
       <div ref={scrollRef} className={styles.scroll}>
-        <div ref={hostRef} className={styles.score} />
+        <div className={styles.scoreFrame}>
+          <div ref={hostRef} className={styles.score} />
+          {engine && (
+            <EngineProvider engine={engine}>
+              <LoopHandles />
+            </EngineProvider>
+          )}
+        </div>
       </div>
       {engine && (
         <EngineProvider engine={engine}>

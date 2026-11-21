@@ -1,0 +1,59 @@
+/* Shares the score host's origin, so loop edge coordinates from the engine apply directly. */
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* A wide, invisible grab area centred on the edge. */
+.handle {
+  position: absolute;
+  width: 24px;
+  margin-left: -12px;
+  cursor: ew-resize;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 11px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--teal);
+}
+
+/* The grip sits at the top of the start edge and the bottom of the end edge, like brackets. */
+.grip {
+  position: absolute;
+  left: 5px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--tolex-deep);
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  transition: transform 0.12s ease;
+}
+
+.handle[data-edge="start"] .grip {
+  top: -7px;
+}
+
+.handle[data-edge="end"] .grip {
+  bottom: -7px;
+}
+
+.handle:hover .grip,
+.handle:active .grip {
+  transform: scale(1.2);
+}
+
+.handle:hover .line,
+.handle:active .line {
+  left: 10.5px;
+  width: 3px;
+}
