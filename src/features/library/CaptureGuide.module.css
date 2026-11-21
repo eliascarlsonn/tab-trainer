@@ -1,3 +1,62 @@
+.guide {
+  display: grid;
+  gap: var(--s5);
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s4) var(--s5);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--panel-raised);
+}
+
+.quickBody {
+  margin-top: var(--s1);
+  color: var(--chalk-muted);
+  font-size: var(--text-sm);
+  max-width: 62ch;
+}
+
+.hint {
+  margin-top: var(--s2);
+  color: var(--amber);
+  font-size: var(--text-sm);
+}
+
+/* Looks like a button, but it's a link: links are what browsers let you drag into the bookmarks bar. */
+.bookmarklet {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  height: 40px;
+  padding: 0 var(--s4);
+  border: 1px dashed var(--amber);
+  border-radius: var(--radius-sm);
+  background: var(--tolex-deep);
+  color: var(--chalk);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: grab;
+}
+
+.bookmarklet:active {
+  cursor: grabbing;
+}
+
+.manualTitle {
+  margin-bottom: calc(-1 * var(--s2));
+  color: var(--chalk-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
 .steps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

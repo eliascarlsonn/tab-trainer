@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { LibraryScreen } from "@/features/library/LibraryScreen";
 import { useLibrary } from "@/library/useLibrary";
+import { useCaptureReceiver } from "./useCaptureReceiver";
 import { useHashRoute } from "./useHashRoute";
 
 // The player pulls in alphaTab (the bulk of the bundle), so it loads only when a song is opened.
@@ -12,6 +13,8 @@ export function App() {
   const route = useHashRoute();
   const loaded = useLibrary((s) => s.loaded);
   const load = useLibrary((s) => s.load);
+  // Listens even while the library loads, so a song sent from Songsterr is never missed.
+  useCaptureReceiver();
 
   useEffect(() => {
     void load();

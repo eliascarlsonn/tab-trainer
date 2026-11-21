@@ -25,6 +25,14 @@ again updates the existing entry.
 
 ### Saving a song from Songsterr
 
+The quickest way is the **Send to Tab Trainer** bookmark: drag the button from the library's
+"Saving from Songsterr" guide to your bookmarks bar, open a song on songsterr.com and click it. The song
+opens in Tab Trainer with all its tracks and synced videos. If the app isn't open or can't be reached,
+the bookmark downloads the song as a `.har` file to drop in instead. (A bookmark made on one address,
+such as `localhost:5173`, sends songs to that address.)
+
+To capture a song by hand instead:
+
 1. Open the song on songsterr.com in Chrome or Edge.
 2. Press F12, open the **Network** tab, tick **Disable cache**, reload the page.
 3. Click through every track you want. Turn the video on if you want to play along with it.
