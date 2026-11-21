@@ -4,11 +4,7 @@ import styles from "./CaptureGuide.module.css";
 
 const STEPS = [
   { title: "Open the song", body: "Go to the song on songsterr.com in Chrome or Edge." },
-  { title: "Start recording", body: "Press F12, open the Network tab, tick Disable cache, then reload the page." },
-  {
-    title: "Load what you need",
-    body: "Click through every track you want to practice. Turn on the video if you want to play along with it.",
-  },
+  { title: "Record", body: "Press F12, open the Network tab, tick Disable cache, then reload the page." },
   {
     title: "Export and drop",
     body: "Click the download arrow (Export HAR) in the Network tab and drop the file here.",
@@ -46,8 +42,8 @@ export function CaptureGuide() {
             setClicked(true);
           }}
         >
-          {/* Browsers never show a site icon for javascript: bookmarks; the emoji in the name stands in. */}
-          🎸 Send to Tab Trainer
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" width={20} height={20} />
+          Send to Tab Trainer
         </a>
       </section>
 

@@ -5,9 +5,9 @@
 A practice player for guitar tabs: loop, speed trainer, pitch shift, per-track mixer, and playback
 synced to the original recording on YouTube.
 
-Import songs saved from Songsterr, Guitar Pro files (.gp, .gp3, .gp4, .gp5, .gpx) or MusicXML
-(.musicxml, .mxl, .xml). Your library stays in your browser; nothing is uploaded, and the app never
-contacts Songsterr.
+Import Guitar Pro files (.gp, .gp3, .gp4, .gp5, .gpx), MusicXML (.musicxml, .mxl, .xml), or songs
+saved from Songsterr. Your library stays in your browser and nothing is uploaded. The app itself never
+contacts Songsterr; the optional bookmark only reads the song you're viewing there, when you click it.
 
 _Not affiliated with or endorsed by Songsterr._
 
@@ -35,8 +35,7 @@ To capture a song by hand instead:
 
 1. Open the song on songsterr.com in Chrome or Edge.
 2. Press F12, open the **Network** tab, tick **Disable cache**, reload the page.
-3. Click through every track you want. Turn the video on if you want to play along with it.
-4. Click the download arrow (**Export HAR**) and drop the `.har` file into the app.
+3. Click the download arrow (**Export HAR**) and drop the `.har` file into the app.
 
 Importing the same song again adds any newly captured tracks to the existing entry. Synced YouTube
 playback is available for Songsterr songs whose video was captured.
