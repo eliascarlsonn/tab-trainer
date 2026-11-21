@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { SCORE_FILE_EXTENSIONS } from "@/library/scoreFile";
 import { sortByRecent, useLibrary } from "@/library/useLibrary";
-import { Button } from "@/ui/Button";
+import { REPO_URL } from "@/app/links";
+import { Button, IconLink } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { CaptureGuide } from "./CaptureGuide";
 import { SongList } from "./SongList";
@@ -43,6 +44,7 @@ export function LibraryScreen() {
           <Button variant="primary" icon="upload" onClick={() => fileInput.current?.click()}>
             Import
           </Button>
+          <IconLink icon="github" label="Source code on GitHub" href={REPO_URL} />
           <input
             ref={fileInput}
             type="file"

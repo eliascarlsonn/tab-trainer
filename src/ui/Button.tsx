@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { Icon, type IconName } from "./Icon";
 import styles from "./Button.module.css";
@@ -17,6 +17,29 @@ export function Button({ variant = "secondary", icon, children, className, ...pr
       {icon && <Icon name={icon} size={16} />}
       {children}
     </button>
+  );
+}
+
+interface IconLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
+  icon: IconName;
+  label: string;
+  href: string;
+}
+
+/** An icon-only link that looks like an IconButton; external links open in a new tab. */
+export function IconLink({ icon, label, href, className, ...props }: IconLinkProps) {
+  const external = /^https?:/.test(href);
+  return (
+    <a
+      href={href}
+      aria-label={label}
+      title={label}
+      className={cx(styles.iconButton, styles.md, className)}
+      {...(external && { target: "_blank", rel: "noopener noreferrer" })}
+      {...props}
+    >
+      <Icon name={icon} size={20} />
+    </a>
   );
 }
 
