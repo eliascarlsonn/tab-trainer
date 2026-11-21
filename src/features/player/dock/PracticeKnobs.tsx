@@ -1,8 +1,29 @@
 import { formatPercent, formatSemitones } from "@/lib/format";
 import { PITCH_RANGE, SPEED_RANGE, VOLUME_RANGE } from "@/practice/practiceSettings";
-import { Knob } from "@/ui/Knob";
+import { Knob, type KnobEntry } from "@/ui/Knob";
 import { useEngine, useSetting } from "../engineContext";
 import styles from "./dock.module.css";
+
+function parseNumber(text: string): number | undefined {
+  const value = Number.parseFloat(text.replace(",", ".").replace(/[^\d.+-]/g, ""));
+  return Number.isNaN(value) ? undefined : value;
+}
+
+/** Percent knobs are typed as whole percentages: "85" means 85%. */
+const PERCENT_ENTRY: KnobEntry = {
+  toText: (value) => String(Math.round(value * 100)),
+  fromText: (text) => {
+    const percent = parseNumber(text);
+    return percent === undefined ? undefined : percent / 100;
+  },
+  suffix: "%",
+};
+
+const SEMITONE_ENTRY: KnobEntry = {
+  toText: (value) => String(value),
+  fromText: parseNumber,
+  suffix: "st",
+};
 
 export function PracticeKnobs() {
   const engine = useEngine();
@@ -21,6 +42,7 @@ export function PracticeKnobs() {
         step={SPEED_RANGE.step}
         defaultValue={1}
         format={formatPercent}
+        entry={PERCENT_ENTRY}
         onChange={(v) => engine.setSpeed(v)}
       />
       <Knob
@@ -32,6 +54,7 @@ export function PracticeKnobs() {
         defaultValue={0}
         origin={0}
         format={(v) => `${formatSemitones(v)} st`}
+        entry={SEMITONE_ENTRY}
         onChange={(v) => engine.setPitch(v)}
         disabled={usesVideo}
         disabledNote="Tab audio only"
@@ -44,6 +67,7 @@ export function PracticeKnobs() {
         step={VOLUME_RANGE.step}
         defaultValue={1}
         format={formatPercent}
+        entry={PERCENT_ENTRY}
         onChange={(v) => engine.setVolume(v)}
       />
     </div>

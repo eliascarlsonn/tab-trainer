@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { cx } from "@/lib/cx";
 import { clamp, roundTo } from "@/lib/math";
 import styles from "./Knob.module.css";
@@ -21,6 +21,17 @@ interface KnobProps {
   disabled?: boolean;
   /** Short note shown instead of the value when disabled. */
   disabledNote?: string;
+  /** Lets the value be typed in after clicking the readout. */
+  entry?: KnobEntry;
+}
+
+export interface KnobEntry {
+  /** The value as it appears in the text field, e.g. "85" for 0.85. */
+  toText: (value: number) => string;
+  /** Reads typed text back; undefined when it isn't a number. */
+  fromText: (text: string) => number | undefined;
+  /** Unit shown after the field, e.g. "%". */
+  suffix?: string;
 }
 
 const SWEEP = 270;
@@ -55,8 +66,41 @@ export function Knob({
   onChange,
   disabled,
   disabledNote,
+  entry,
 }: KnobProps) {
   const drag = useRef<{ y: number; value: number } | null>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  // Blur also fires after Enter/Escape; this makes sure the draft is applied at most once.
+  const editing = useRef(false);
+
+  const startEditing = () => {
+    if (!entry || disabled) return;
+    editing.current = true;
+    setDraft(entry.toText(value));
+  };
+
+  const finishEditing = (apply: boolean) => {
+    if (!editing.current) return;
+    editing.current = false;
+    const typed = apply && draft !== null ? entry?.fromText(draft) : undefined;
+    setDraft(null);
+    if (typed !== undefined && Number.isFinite(typed)) onChange(clamp(typed, min, max));
+  };
+
+  // Clicking the tab doesn't move focus (alphaTab handles the pointer), so blur alone would leave
+  // the field open; any press outside it applies the value.
+  const entryRef = useRef<HTMLSpanElement>(null);
+  const finishRef = useRef(finishEditing);
+  finishRef.current = finishEditing;
+  const isEditing = draft !== null;
+  useEffect(() => {
+    if (!isEditing) return;
+    const onPointerDown = (e: globalThis.PointerEvent) => {
+      if (!entryRef.current?.contains(e.target as Node)) finishRef.current(true);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [isEditing]);
   const ratio = (clamp(value, min, max) - min) / (max - min);
   const angle = START_ANGLE + ratio * SWEEP;
   const originAngle = START_ANGLE + ((clamp(origin, min, max) - min) / (max - min)) * SWEEP;
@@ -131,7 +175,40 @@ export function Knob({
           <line x1={pointerBase.x} y1={pointerBase.y} x2={pointer.x} y2={pointer.y} className={styles.pointer} />
         </svg>
       </div>
-      <span className={styles.readout}>{disabled && disabledNote ? disabledNote : format(value)}</span>
+      {draft !== null ? (
+        <span ref={entryRef} className={styles.entry}>
+          <input
+            className={styles.entryField}
+            value={draft}
+            inputMode="decimal"
+            aria-label={`${label}, type a value`}
+            autoFocus
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => finishEditing(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") finishEditing(true);
+              else if (e.key === "Escape") {
+                e.stopPropagation();
+                finishEditing(false);
+              }
+            }}
+          />
+          {entry?.suffix && <span className={styles.entrySuffix}>{entry.suffix}</span>}
+        </span>
+      ) : entry && !disabled ? (
+        <button
+          type="button"
+          className={cx(styles.readout, styles.editable)}
+          title="Click to type a value"
+          aria-label={`${label} ${format(value)}, click to type a value`}
+          onClick={startEditing}
+        >
+          {format(value)}
+        </button>
+      ) : (
+        <span className={styles.readout}>{disabled && disabledNote ? disabledNote : format(value)}</span>
+      )}
       <span className={styles.label}>{label}</span>
     </div>
   );

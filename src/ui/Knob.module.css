@@ -50,6 +50,49 @@
   line-height: 1.2;
 }
 
+/* The readout doubles as a button that turns into a text field. */
+.editable {
+  padding: 0 var(--s1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  cursor: text;
+}
+
+.editable:hover {
+  background: var(--tolex-deep);
+  text-decoration: underline dotted var(--chalk-faint);
+  text-underline-offset: 3px;
+}
+
+.entry {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.entryField {
+  width: 4ch;
+  padding: 0 2px;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-sm);
+  background: var(--tolex-deep);
+  color: var(--chalk);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  outline: none;
+}
+
+.entrySuffix {
+  color: var(--chalk-muted);
+}
+
 .label {
   font-size: var(--text-xs);
   color: var(--chalk-muted);
