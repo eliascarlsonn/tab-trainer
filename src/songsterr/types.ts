@@ -94,7 +94,10 @@ export interface SsMeasure {
 export interface SsTempoAutomation {
   measure: number;
   position: number;
+  /** Beats per minute, counted in the note value given by `type`. */
   bpm: number;
+  /** The note value `bpm` counts: 4 = quarter notes, 2 = half notes (cut time), 8 = eighths. */
+  type?: number;
 }
 
 export interface SsFermataAutomation {

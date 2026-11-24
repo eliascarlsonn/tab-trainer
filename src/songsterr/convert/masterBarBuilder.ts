@@ -45,7 +45,8 @@ function applyAutomations(masterBars: model.MasterBar[], track: SsTrack, signatu
       model.Automation.buildTempoAutomation(
         false,
         ratioIn(tempo.measure, tempo.position),
-        tempo.bpm,
+        // alphaTab plays by quarter notes per minute; Songsterr may count halves (type 2) or eighths.
+        (tempo.bpm * 4) / (tempo.type ?? 4),
         QUARTER_TEMPO_REFERENCE,
       ),
     );
