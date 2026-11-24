@@ -1,3 +1,4 @@
+import type { MetronomeSound } from "@/player/metronome/clickSounds";
 import type { PracticeSettings } from "@/practice/practiceSettings";
 
 export interface SectionMarker {
@@ -34,6 +35,11 @@ export interface EngineState {
   loopBars: { start: number; end: number } | null;
   /** Drag handles for the loop's edges; null when nothing is highlighted. */
   loopEdges: { start: LoopEdge; end: LoopEdge } | null;
+  /** The metronome's sound and volume, shared by all songs. */
+  metronomeSound: MetronomeSound;
+  metronomeVolume: number;
+  /** A count-in bar is clicking before playback starts. */
+  countingIn: boolean;
   settings: PracticeSettings;
 }
 
@@ -53,6 +59,9 @@ export function initialEngineState(settings: PracticeSettings): EngineState {
     trainerPasses: 0,
     loopBars: null,
     loopEdges: null,
+    metronomeSound: "click",
+    metronomeVolume: 0.8,
+    countingIn: false,
     settings,
   };
 }

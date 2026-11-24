@@ -5,7 +5,8 @@ import styles from "./dock.module.css";
 
 export function TransportControls() {
   const engine = useEngine();
-  const playing = useEngineState((s) => s.playing);
+  // A count-in is part of starting playback: it shows as playing, and pressing pause cancels it.
+  const playing = useEngineState((s) => s.playing || s.countingIn);
   const canPlay = useEngineState((s) => s.canPlay);
   const time = useEngineState((s) => s.currentTimeMs);
   const end = useEngineState((s) => s.endTimeMs);

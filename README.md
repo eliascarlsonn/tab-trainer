@@ -2,8 +2,8 @@
 
 # Tab Trainer
 
-A practice player for guitar tabs: loop, speed trainer, pitch shift, per-track mixer, and playback
-synced to the original recording on YouTube.
+A practice player for guitar tabs: loop, speed trainer, pitch shift, per-track mixer, metronome and
+count-in with a choice of click sounds, and playback synced to the original recording on YouTube.
 
 Import Guitar Pro files (.gp, .gp3, .gp4, .gp5, .gpx), MusicXML (.musicxml, .mxl, .xml), or songs
 saved from Songsterr. Your library stays in your browser and nothing is uploaded. The app itself never

@@ -23,6 +23,10 @@ import { YouTubeMediaHandler } from "../youtube/YouTubeMediaHandler";
 import { createAlphaTabSettings, playerModeFor } from "./alphaTabSettings";
 import { initialEngineState, type EngineState } from "./engineState";
 import { beatsSpanning, isMelodic, sectionBarRange, sectionsOf } from "./scoreQueries";
+import { beatGrid, QUARTER_TICKS } from "../metronome/beatGrid";
+import type { MetronomeSound } from "../metronome/clickSounds";
+import { Metronome } from "../metronome/Metronome";
+import { loadMetronomePrefs, METRONOME_VOLUME_RANGE, saveMetronomePrefs } from "../metronome/metronomePrefs";
 import { scoreForSong } from "./songScore";
 
 const beatOrder = (beat: model.Beat) => beat.absolutePlaybackStart;
@@ -41,6 +45,16 @@ export class PlayerEngine {
   private readonly score: model.Score;
   private readonly trackIndexByPart: Map<number, number>;
   private media: YouTubeMediaHandler | undefined;
+  private readonly metronome: Metronome;
+  /**
+   * How long playback takes to be heard after it's started, per source, learned from each start:
+   * the synth fills its audio buffer first (a few hundred ms), a paused video starts almost at once.
+   * A count-in starts playback this much early so the music begins on the downbeat.
+   */
+  private readonly startupMs = { synth: 280, video: 30 };
+  /** When playback was last asked to start, until the position is seen moving. */
+  private playRequestedAt: number | undefined;
+  private lastPositionTick = -1;
   /** Range last pushed into alphaTab's player; undefined until the player is (re)created. */
   private appliedRange: TickRange | null | undefined;
   /**
@@ -62,7 +76,19 @@ export class PlayerEngine {
     private readonly song: Song,
     settings: PracticeSettings,
   ) {
-    this.store = createStore<EngineState>(() => initialEngineState(settings));
+    const prefs = loadMetronomePrefs();
+    this.store = createStore<EngineState>(() => ({
+      ...initialEngineState(settings),
+      metronomeSound: prefs.sound,
+      metronomeVolume: prefs.volume,
+    }));
+    // Loops wrap around the range alphaTab plays in, which is only set while looping is on.
+    this.metronome = new Metronome(
+      prefs.sound,
+      prefs.volume,
+      () => (this.settings.loopEnabled ? (this.appliedRange ?? null) : null),
+      (tick) => (this.settings.source.kind === "synth" ? this.scoreTickRate(tick) : undefined),
+    );
     this.api = new AlphaTabApi(
       host,
       createAlphaTabSettings({ scrollElement, zoom: settings.zoom, source: settings.source }),
@@ -80,6 +106,7 @@ export class PlayerEngine {
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   destroy(): void {
+    this.metronome.dispose();
     this.media?.dispose();
     this.api.destroy();
   }
@@ -104,11 +131,18 @@ export class PlayerEngine {
     api.error.on((error) => set({ phase: "error", error: error.message }));
     api.playbackRangeHighlightChanged.on((e) => this.onHighlightChanged(e));
     api.playerReady.on(() => this.onPlayerReady());
-    api.playerStateChanged.on((e) => set({ playing: e.state === synth.PlayerState.Playing }));
+    api.playerStateChanged.on((e) => {
+      const playing = e.state === synth.PlayerState.Playing;
+      set({ playing });
+      this.metronome.setPlaying(playing);
+    });
+    api.midiLoaded.on(() => this.updateBeatGrid());
     api.playerFinished.on(() => this.onLoopPassCompleted());
     api.playedBeatChanged.on((beat) => set({ currentBar: beat.voice.bar.index }));
     api.playerPositionChanged.on((e) => {
       set({ currentTimeMs: e.currentTime, endTimeMs: e.endTime, tempo: e.modifiedTempo });
+      this.metronome.onPosition(e.currentTick);
+      this.learnStartupTime(e.currentTick);
       // During playback the played-beat event tracks the bar; seeks have to look it up.
       if (e.isSeek) this.updateBarAt(e.currentTick);
     });
@@ -139,14 +173,15 @@ export class PlayerEngine {
   /** Pushes every playback-related setting into alphaTab; safe to call repeatedly. */
   private applyPlaybackSettings() {
     const s = this.settings;
-    const usesSynth = s.source.kind === "synth";
     this.api.playbackSpeed = s.speed;
     // With a video source alphaTab forwards this to the media handler, i.e. YouTube's own volume.
     this.api.masterVolume = s.volume;
     this.api.isLooping = s.loopEnabled;
     this.applyLoopRange();
-    this.api.metronomeVolume = usesSynth && s.metronome ? 1 : 0;
-    this.api.countInVolume = usesSynth && s.countIn ? 1 : 0;
+    // The app's own metronome and count-in replace alphaTab's, which only work with the synth.
+    this.api.metronomeVolume = 0;
+    this.api.countInVolume = 0;
+    this.metronome.setEnabled(s.metronome);
     this.applyMixer();
     this.applyPitch();
   }
@@ -154,7 +189,71 @@ export class PlayerEngine {
   // ── Transport ────────────────────────────────────────────────────────────
 
   playPause(): void {
-    if (this.store.getState().canPlay) this.api.playPause();
+    const state = this.store.getState();
+    if (!state.canPlay) return;
+    // A key press or click: the moment browsers allow the metronome's audio to start.
+    this.metronome.unlock();
+    if (this.metronome.countingIn) {
+      this.metronome.cancelCountIn();
+      return;
+    }
+    if (!state.playing && this.settings.countIn) {
+      void this.playAfterCountIn();
+      return;
+    }
+    if (state.playing) this.api.pause();
+    else this.requestPlay();
+  }
+
+  /** One bar of clicks in the current bar's time signature and tempo, then playback. */
+  private async playAfterCountIn() {
+    const state = this.store.getState();
+    const bar = this.score.masterBars[state.currentBar] ?? this.score.masterBars[0]!;
+    const tempo = state.tempo || this.score.tempo * this.settings.speed;
+    const beatMs = (60000 / tempo) * (4 / bar.timeSignatureDenominator);
+    this.store.setState({ countingIn: true });
+    const lead = this.startupMs[this.settings.source.kind];
+    const completed = await this.metronome.playCountIn(bar.timeSignatureNumerator, beatMs, lead);
+    this.store.setState({ countingIn: false });
+    if (completed) this.requestPlay();
+  }
+
+  private requestPlay() {
+    this.playRequestedAt = performance.now();
+    this.api.play();
+  }
+
+  /** Measures the time from asking playback to start until the position moves. */
+  private learnStartupTime(tick: number) {
+    const moved = tick > this.lastPositionTick;
+    this.lastPositionTick = tick;
+    if (this.playRequestedAt === undefined || !moved) return;
+    const elapsed = performance.now() - this.playRequestedAt;
+    this.playRequestedAt = undefined;
+    if (elapsed > 2000) return; // stalled (e.g. a video buffering): not a startup time
+    const kind = this.settings.source.kind;
+    this.startupMs[kind] = Math.round((this.startupMs[kind] + elapsed) / 2);
+  }
+
+  /** How fast the tab audio moves through the score at a tick, in ticks per ms. */
+  private scoreTickRate(tick: number): number | undefined {
+    const bar = this.api.tickCache?.masterBars.find((lookup) => lookup.start <= tick && tick < lookup.end);
+    return bar ? (bar.tempo * this.settings.speed * QUARTER_TICKS) / 60000 : undefined;
+  }
+
+  /** Every beat in playback order (repeats included), for the metronome. */
+  private updateBeatGrid() {
+    const bars = this.api.tickCache?.masterBars ?? [];
+    this.metronome.setBeats(
+      beatGrid(
+        bars.map((lookup) => ({
+          start: lookup.start,
+          end: lookup.end,
+          numerator: lookup.masterBar.timeSignatureNumerator,
+          denominator: lookup.masterBar.timeSignatureDenominator,
+        })),
+      ),
+    );
   }
 
   stop(): void {
@@ -178,6 +277,7 @@ export class PlayerEngine {
     const value = clamp(speed, SPEED_RANGE.min, SPEED_RANGE.max);
     this.patchSettings({ speed: Math.round(value * 100) / 100 });
     this.api.playbackSpeed = this.settings.speed;
+    this.metronome.restart();
   }
 
   setPitch(semitones: number): void {
@@ -194,6 +294,25 @@ export class PlayerEngine {
   setMetronome(enabled: boolean): void {
     this.patchSettings({ metronome: enabled });
     this.applyPlaybackSettings();
+  }
+
+  setMetronomeSound(sound: MetronomeSound): void {
+    this.store.setState({ metronomeSound: sound });
+    this.metronome.setSound(sound);
+    this.metronome.preview();
+    this.saveMetronomePrefs();
+  }
+
+  setMetronomeVolume(volume: number): void {
+    const value = Math.round(clamp(volume, METRONOME_VOLUME_RANGE.min, METRONOME_VOLUME_RANGE.max) * 100) / 100;
+    this.store.setState({ metronomeVolume: value });
+    this.metronome.setVolume(value);
+    this.saveMetronomePrefs();
+  }
+
+  private saveMetronomePrefs() {
+    const { metronomeSound, metronomeVolume } = this.store.getState();
+    saveMetronomePrefs({ sound: metronomeSound, volume: metronomeVolume });
   }
 
   setCountIn(enabled: boolean): void {
