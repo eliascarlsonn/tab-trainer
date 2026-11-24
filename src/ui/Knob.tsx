@@ -16,6 +16,11 @@ interface KnobProps {
    * Pass the center (e.g. 0 for ±semitones) for bipolar controls that light up outward from it.
    */
   origin?: number;
+  /**
+   * The value shown with the pointer straight up. Defaults to halfway between `min` and `max`; for a
+   * lopsided range (e.g. 25–150% speed) each half of the sweep then covers its own side of it.
+   */
+  center?: number;
   format: (value: number) => string;
   onChange: (value: number) => void;
   disabled?: boolean;
@@ -62,13 +67,14 @@ export function Knob({
   step,
   defaultValue,
   origin = min,
+  center = (min + max) / 2,
   format,
   onChange,
   disabled,
   disabledNote,
   entry,
 }: KnobProps) {
-  const drag = useRef<{ y: number; value: number } | null>(null);
+  const drag = useRef<{ y: number; ratio: number } | null>(null);
   const [draft, setDraft] = useState<string | null>(null);
   // Blur also fires after Enter/Escape; this makes sure the draft is applied at most once.
   const editing = useRef(false);
@@ -101,9 +107,17 @@ export function Knob({
     document.addEventListener("pointerdown", onPointerDown, true);
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [isEditing]);
-  const ratio = (clamp(value, min, max) - min) / (max - min);
-  const angle = START_ANGLE + ratio * SWEEP;
-  const originAngle = START_ANGLE + ((clamp(origin, min, max) - min) / (max - min)) * SWEEP;
+  /** Position along the sweep (0–1), with `center` at 0.5. */
+  const toRatio = (v: number) => {
+    const c = clamp(v, min, max);
+    return c <= center ? ((c - min) / (center - min)) * 0.5 : 0.5 + ((c - center) / (max - center)) * 0.5;
+  };
+  const fromRatio = (r: number) => {
+    const c = clamp(r, 0, 1);
+    return c <= 0.5 ? min + (c / 0.5) * (center - min) : center + ((c - 0.5) / 0.5) * (max - center);
+  };
+  const angle = START_ANGLE + toRatio(value) * SWEEP;
+  const originAngle = START_ANGLE + toRatio(origin) * SWEEP;
 
   /** Moves by `steps` increments, landing on the step grid even if the value was off it. */
   const nudge = (steps: number) => onChange(clamp(roundTo(value + steps * step, step), min, max));
@@ -111,14 +125,14 @@ export function Knob({
   const onPointerDown = (e: PointerEvent) => {
     if (disabled) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { y: e.clientY, value };
+    drag.current = { y: e.clientY, ratio: toRatio(value) };
   };
 
   const onPointerMove = (e: PointerEvent) => {
     if (!drag.current) return;
-    const delta = ((drag.current.y - e.clientY) / PIXELS_PER_RANGE) * (max - min);
-    const raw = clamp(drag.current.value + delta, min, max);
-    onChange(roundTo(raw, step));
+    // Dragging turns the dial evenly, so each half of the sweep takes the same distance.
+    const ratio = drag.current.ratio + (drag.current.y - e.clientY) / PIXELS_PER_RANGE;
+    onChange(clamp(roundTo(fromRatio(ratio), step), min, max));
   };
 
   const onKeyDown = (e: KeyboardEvent) => {

@@ -41,6 +41,7 @@ export function PracticeKnobs() {
         max={SPEED_RANGE.max}
         step={SPEED_RANGE.step}
         defaultValue={1}
+        center={1}
         format={formatPercent}
         entry={PERCENT_ENTRY}
         onChange={(v) => engine.setSpeed(v)}
