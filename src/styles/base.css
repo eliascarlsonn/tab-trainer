@@ -49,8 +49,10 @@ p {
   background: var(--amber-soft);
 }
 
+/* The playback cursor is left out: it glides through each beat by a CSS transition, and without it
+   the line jumps ahead to the next beat (or past the end of the line) instead of following the music. */
 @media (prefers-reduced-motion: reduce) {
-  *,
+  *:not(.at-cursor-beat),
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
