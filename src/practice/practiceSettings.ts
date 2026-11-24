@@ -102,7 +102,7 @@ export function defaultPracticeSettings(song: Song): PracticeSettings {
     partId: defaultPartId(song),
     speed: 1,
     pitch: 0,
-    volume: 1,
+    volume: 0.5,
     metronome: false,
     countIn: false,
     loopEnabled: false,

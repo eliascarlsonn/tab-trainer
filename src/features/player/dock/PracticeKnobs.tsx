@@ -65,7 +65,7 @@ export function PracticeKnobs() {
         min={VOLUME_RANGE.min}
         max={VOLUME_RANGE.max}
         step={VOLUME_RANGE.step}
-        defaultValue={1}
+        defaultValue={0.5}
         format={formatPercent}
         entry={PERCENT_ENTRY}
         onChange={(v) => engine.setVolume(v)}
