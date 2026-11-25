@@ -539,8 +539,21 @@ export class PlayerEngine {
     });
   }
 
+  /**
+   * The displayed track's beat at a tick, anywhere in the song. alphaTab's lookup skips beats past
+   * the active loop's end, and a newly selected loop is reported before that range is replaced, so
+   * the range is set aside while looking.
+   */
   private beatAt(tick: number): model.Beat | undefined {
-    return this.api.tickCache?.findBeat(new Set([this.displayedTrack().index]), tick)?.beat;
+    const cache = this.api.tickCache;
+    if (!cache) return undefined;
+    const range = cache.playbackRange;
+    cache.playbackRange = null;
+    try {
+      return cache.findBeat(new Set([this.displayedTrack().index]), tick)?.beat;
+    } finally {
+      cache.playbackRange = range;
+    }
   }
 
   private updateBarAt(tick: number) {
