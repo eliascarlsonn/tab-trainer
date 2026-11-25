@@ -153,7 +153,7 @@ function SectionMenu() {
           disabled={sections.length === 0}
           onClick={toggle}
         >
-          Sections
+          <span className={styles.collapsibleLabel}>Sections</span>
         </Button>
       )}
     >

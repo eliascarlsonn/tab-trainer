@@ -84,7 +84,9 @@ function SourcePicker({ song }: { song: Song }) {
       align="end"
       trigger={({ toggle, open }) => (
         <button type="button" className={styles.sourceButton} onClick={toggle} aria-expanded={open}>
-          <Icon name={source.kind === "video" ? "video" : "waveform"} size={18} />
+          <span className={styles.sourceIcon}>
+            <Icon name={source.kind === "video" ? "video" : "waveform"} size={18} />
+          </span>
           <span className={styles.stack}>
             <span className={styles.caption}>Play along with</span>
             <span className={styles.sourceName}>{currentLabel}</span>

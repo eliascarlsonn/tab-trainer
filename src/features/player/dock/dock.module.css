@@ -169,7 +169,7 @@
 }
 
 /* Below this width the full spacing no longer fits every control; tighten it before resorting to scrolling. */
-@media (max-width: 1500px) {
+@media (max-width: 1600px) {
   .dock {
     gap: var(--s4);
     padding: 0 var(--s4);
@@ -194,4 +194,52 @@
 .sectionLoop.sectionLoop:hover:not(:disabled),
 .sectionLoop.sectionLoop[aria-pressed="true"] {
   color: var(--teal);
+}
+
+.sourceIcon {
+  display: flex;
+}
+
+/*
+ * Narrower screens (most laptops) give up spacing and secondary detail step by step, so every
+ * control stays on screen without scrolling the dock.
+ */
+@media (max-width: 1600px) {
+  .collapsibleLabel {
+    display: none;
+  }
+}
+
+@media (max-width: 1440px) {
+  .dock {
+    gap: var(--s2);
+    padding: 0 var(--s3);
+  }
+
+  .readouts {
+    gap: var(--s2);
+  }
+
+  .sourceButton {
+    min-width: 0;
+  }
+
+  .sourceIcon {
+    display: none;
+  }
+}
+
+@media (max-width: 1300px) {
+  .dock {
+    padding: 0 var(--s2);
+  }
+
+  .group {
+    gap: 6px;
+  }
+
+  /* The speed knob already says how fast it plays. */
+  .readouts .tempoReadout {
+    display: none;
+  }
 }
