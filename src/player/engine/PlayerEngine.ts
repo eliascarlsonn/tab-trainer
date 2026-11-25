@@ -12,6 +12,7 @@ import {
   type NotationMode,
   type PlaybackSource,
   type PracticeSettings,
+  type SavedLoop,
   type TickRange,
   type TrackMix,
   type TrainerSettings,
@@ -412,6 +413,35 @@ export class PlayerEngine {
     this.setLoopEnabled(false);
   }
 
+  // ── Saved loops ──────────────────────────────────────────────────────────
+
+  /** Keeps the current loop under a name. */
+  saveLoop(name: string): void {
+    const range = this.settings.loopRange;
+    const bars = this.store.getState().loopBars;
+    if (!range || !bars) return;
+    const loop: SavedLoop = { id: crypto.randomUUID(), name: name.trim(), range: { ...range }, bars };
+    this.patchSettings({ savedLoops: [...this.settings.savedLoops, loop] });
+  }
+
+  /** Makes a saved loop the current one and goes to its start. */
+  playSavedLoop(id: string): void {
+    const loop = this.settings.savedLoops.find((l) => l.id === id);
+    const beats = loop && this.beatsInRange(loop.range);
+    if (!beats) return;
+    // As in loopBars: alphaTab applies the range itself and reports it back.
+    this.markLoopEnabled(true);
+    this.api.highlightPlaybackRange(beats.start, beats.end);
+    this.api.applyPlaybackRangeFromHighlight();
+    const bar = beats.start.voice.bar.index;
+    this.seekToBar(bar);
+    this.scrollToBar(bar);
+  }
+
+  deleteSavedLoop(id: string): void {
+    this.patchSettings({ savedLoops: this.settings.savedLoops.filter((l) => l.id !== id) });
+  }
+
   /**
    * alphaTab's clearPlaybackRangeHighlight only hides the markers: it keeps the selected beats and
    * redraws them after the next render (crashing if they're no longer rendered, e.g. after a track
@@ -721,6 +751,6 @@ export class PlayerEngine {
   }
 }
 
-function sameRange(a: TickRange | null, b: TickRange | null): boolean {
+export function sameRange(a: TickRange | null, b: TickRange | null): boolean {
   return a === b || (!!a && !!b && a.startTick === b.startTick && a.endTick === b.endTick);
 }

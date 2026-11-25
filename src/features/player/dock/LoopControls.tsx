@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { formatPercent } from "@/lib/format";
+import { sameRange } from "@/player/engine/PlayerEngine";
 import { sectionBarRange } from "@/player/engine/scoreQueries";
 import { SPEED_RANGE } from "@/practice/practiceSettings";
 import { Button, IconButton } from "@/ui/Button";
@@ -8,9 +10,14 @@ import { Stepper } from "@/ui/Stepper";
 import { useEngine, useEngineState, useSetting } from "../engineContext";
 import styles from "./dock.module.css";
 
-function loopDescription(bars: { start: number; end: number } | null): string {
-  if (!bars) return "Whole song";
+type BarSpan = { start: number; end: number };
+
+function barsLabel(bars: BarSpan): string {
   return bars.start === bars.end ? `Bar ${bars.start + 1}` : `Bars ${bars.start + 1}–${bars.end + 1}`;
+}
+
+function loopDescription(bars: BarSpan | null): string {
+  return bars ? barsLabel(bars) : "Whole song";
 }
 
 export function LoopControls() {
@@ -26,9 +33,103 @@ export function LoopControls() {
           {loopDescription(loopBars)}
         </span>
       </div>
+      <SavedLoopsMenu />
       <SectionMenu />
       <TrainerMenu />
     </div>
+  );
+}
+
+/** A name for the current loop: its section's, when it covers exactly one section. */
+function useSuggestedLoopName(): string {
+  const sections = useEngineState((s) => s.sections);
+  const barCount = useEngineState((s) => s.barCount);
+  const loopBars = useEngineState((s) => s.loopBars);
+  if (!loopBars) return "";
+  const exact = sections.findIndex((_, i) => {
+    const range = sectionBarRange(sections, i, barCount);
+    return range?.startBar === loopBars.start && range.endBar === loopBars.end;
+  });
+  return exact >= 0 ? sections[exact]!.title : barsLabel(loopBars);
+}
+
+function SavedLoopsMenu() {
+  return (
+    <Popover
+      placement="above"
+      className={styles.savedLoopsPanel}
+      trigger={({ toggle }) => <IconButton icon="bookmark" label="Saved loops" onClick={toggle} />}
+    >
+      {(close) => <SavedLoopsPanel close={close} />}
+    </Popover>
+  );
+}
+
+function SavedLoopsPanel({ close }: { close: () => void }) {
+  const engine = useEngine();
+  const savedLoops = useSetting("savedLoops");
+  const loopRange = useSetting("loopRange");
+  const loopEnabled = useSetting("loopEnabled");
+  const suggested = useSuggestedLoopName();
+  const [name, setName] = useState("");
+  const loopBars = useEngineState((s) => s.loopBars);
+  const canSave = loopRange !== null && loopBars !== null;
+
+  const save = () => {
+    if (!canSave) return;
+    engine.saveLoop(name.trim() || suggested);
+    setName("");
+  };
+
+  return (
+    <>
+      <MenuHeading>Saved loops</MenuHeading>
+      {savedLoops.length === 0 && (
+        <p className={styles.savedLoopsEmpty}>Save loops you practice often, then come back to them with one click.</p>
+      )}
+      {savedLoops.map((loop) => (
+        <MenuItem
+          key={loop.id}
+          selected={loopEnabled && sameRange(loop.range, loopRange)}
+          hint={loop.name === barsLabel(loop.bars) ? undefined : barsLabel(loop.bars)}
+          onSelect={() => {
+            engine.playSavedLoop(loop.id);
+            close();
+          }}
+          action={
+            <IconButton
+              icon="trash"
+              label={`Delete ${loop.name}`}
+              className={styles.sectionLoop}
+              onClick={() => engine.deleteSavedLoop(loop.id)}
+            />
+          }
+        >
+          {loop.name}
+        </MenuItem>
+      ))}
+      <form
+        className={styles.saveLoop}
+        onSubmit={(e) => {
+          e.preventDefault();
+          save();
+        }}
+      >
+        <input
+          className={styles.saveLoopName}
+          value={name}
+          maxLength={60}
+          disabled={!canSave}
+          placeholder={canSave ? suggested : "Select a loop on the tab first"}
+          aria-label="Name for the current loop"
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === "Escape" && close()}
+        />
+        <Button type="submit" variant="secondary" disabled={!canSave}>
+          Save loop
+        </Button>
+      </form>
+    </>
   );
 }
 
@@ -39,13 +140,19 @@ function SectionMenu() {
   const currentBar = useEngineState((s) => s.currentBar);
   const loopBars = useEngineState((s) => s.loopBars);
   const loopEnabled = useSetting("loopEnabled");
-  const hasLoop = loopBars !== null;
 
   return (
     <Popover
       placement="above"
       trigger={({ toggle }) => (
-        <Button variant="ghost" icon="sections" onClick={toggle}>
+        <Button
+          variant="ghost"
+          icon="sections"
+          aria-label="Sections"
+          title={sections.length ? "Sections" : "This song has no sections"}
+          disabled={sections.length === 0}
+          onClick={toggle}
+        >
           Sections
         </Button>
       )}
@@ -57,11 +164,6 @@ function SectionMenu() {
         };
         return (
           <>
-            <MenuItem onSelect={pick(() => engine.loopCurrentBar())}>Loop the current bar</MenuItem>
-            <MenuItem disabled={!hasLoop} onSelect={pick(() => engine.clearLoop())}>
-              Clear loop
-            </MenuItem>
-            {sections.length > 0 && <MenuHeading>Go to a section</MenuHeading>}
             {sections.map((section, i) => {
               const range = sectionBarRange(sections, i, barCount)!;
               const current = currentBar >= range.startBar && currentBar <= range.endBar;

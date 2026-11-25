@@ -23,6 +23,15 @@ export interface TrainerSettings {
   passesPerStep: number;
 }
 
+/** A loop kept under a name, to come back to later. */
+export interface SavedLoop {
+  id: string;
+  name: string;
+  range: TickRange;
+  /** Bar indexes it spans, for display. */
+  bars: { start: number; end: number };
+}
+
 export type PlaybackSource = { kind: "synth" } | { kind: "video"; videoId: string };
 
 export type NotationMode = "tab" | "tabAndScore";
@@ -38,6 +47,7 @@ export interface PracticeSettings {
   countIn: boolean;
   loopEnabled: boolean;
   loopRange: TickRange | null;
+  savedLoops: SavedLoop[];
   trainer: TrainerSettings;
   source: PlaybackSource;
   /** Whether the source was picked by hand; until then each song follows `defaultSource`. */
@@ -107,6 +117,7 @@ export function defaultPracticeSettings(song: Song): PracticeSettings {
     countIn: false,
     loopEnabled: false,
     loopRange: null,
+    savedLoops: [],
     trainer: { enabled: false, step: 0.05, target: 1, passesPerStep: 2 },
     source: defaultSource(song),
     sourceChosen: false,

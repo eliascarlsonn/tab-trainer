@@ -63,6 +63,7 @@ only adds songs you don't have; songs already in the library are left as they ar
 
 Drag across the tab to select a loop range, then drag the handles on its start and end to adjust it.
 While dragging either way, hold Shift to snap to whole bars, or move near the top or bottom edge to scroll.
+Loops you come back to can be named and saved with the bookmark button next to **Loop**.
 
 ## Architecture
 
