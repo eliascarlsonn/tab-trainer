@@ -32,6 +32,8 @@ interface SongBase {
   defaultPartId: number | undefined;
   importedAt: number;
   lastPlayedAt: number | undefined;
+  /** Starred in the library. */
+  favorite?: boolean;
 }
 
 /** A song captured from Songsterr; partIds are Songsterr's part numbers. */
@@ -157,7 +159,12 @@ export function mergeSongs(existing: Song, incoming: Song): Song {
     incoming.origin !== "songsterr" ||
     incoming.revisionId !== existing.revisionId
   ) {
-    return { ...incoming, importedAt: existing.importedAt, lastPlayedAt: existing.lastPlayedAt };
+    return {
+      ...incoming,
+      importedAt: existing.importedAt,
+      lastPlayedAt: existing.lastPlayedAt,
+      favorite: existing.favorite,
+    };
   }
 
   const tracks = new Map(existing.tracks.map((t) => [t.partId, t]));

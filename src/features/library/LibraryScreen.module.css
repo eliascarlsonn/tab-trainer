@@ -21,6 +21,7 @@
   font-weight: 700;
   font-stretch: 85%;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .logo {
@@ -127,6 +128,16 @@
   flex-wrap: wrap;
 }
 
+.tools {
+  display: flex;
+  gap: var(--s1);
+  margin-left: auto;
+}
+
+.toolOn {
+  color: var(--amber);
+}
+
 .sectionTitle {
   font-size: var(--text-xl);
   font-weight: 700;
@@ -163,6 +174,53 @@
   color: var(--chalk-muted);
 }
 
+.toast {
+  position: fixed;
+  bottom: var(--s5);
+  left: 50%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  max-width: calc(100vw - 2 * var(--s4));
+  padding: var(--s2) var(--s2) var(--s2) var(--s4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--panel-raised);
+  box-shadow: var(--shadow-float);
+  font-size: var(--text-sm);
+  transform: translateX(-50%);
+  animation: toast-in 160ms var(--ease);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+.toastText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toastAction {
+  flex: none;
+  padding: var(--s1) var(--s3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.toastAction:hover {
+  background: var(--panel);
+}
+
 .dropOverlay {
   position: fixed;
   inset: var(--s3);
@@ -185,6 +243,11 @@
   }
 
   .header {
+    flex-wrap: wrap;
     padding-bottom: var(--s5);
+  }
+
+  .actions {
+    flex-wrap: wrap;
   }
 }

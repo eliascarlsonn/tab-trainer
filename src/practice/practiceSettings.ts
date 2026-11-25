@@ -137,6 +137,11 @@ export async function loadPracticeSettings(song: Song): Promise<PracticeSettings
   return settings;
 }
 
+/** Every song's saved settings, keyed by song id (for backups). */
+export async function allPracticeSettings(): Promise<Record<string, PracticeSettings>> {
+  return Object.fromEntries(await repository.entries());
+}
+
 export function savePracticeSettings(songId: string, settings: PracticeSettings): Promise<void> {
   return repository.put(songId, settings);
 }

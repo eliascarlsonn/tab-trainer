@@ -1,32 +1,62 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { backupFileName } from "@/library/backup";
+import { SONG_ORDERS, sortSongs, type SongOrder } from "@/library/librarySort";
 import { SCORE_FILE_EXTENSIONS } from "@/library/scoreFile";
-import { sortByRecent, useLibrary } from "@/library/useLibrary";
+import { useLibrary } from "@/library/useLibrary";
 import { REPO_URL } from "@/app/links";
+import { cx } from "@/lib/cx";
 import { Button, IconLink } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
+import { MenuItem, Popover } from "@/ui/Popover";
 import { CaptureGuide } from "./CaptureGuide";
+import { useLibraryView } from "./libraryView";
 import { SongList } from "./SongList";
 import { useFileDrop } from "./useFileDrop";
 import { useImport } from "./useImport";
+import { useUndoRemove } from "./useUndoRemove";
 import styles from "./LibraryScreen.module.css";
 
 const ACCEPTED_FILES = [".har", "application/json", ...SCORE_FILE_EXTENSIONS].join(",");
 
 export function LibraryScreen() {
   const songs = useLibrary((s) => s.songs);
-  const remove = useLibrary((s) => s.remove);
-  const { status, run, dismiss } = useImport();
+  const setFavorite = useLibrary((s) => s.setFavorite);
+  const backup = useLibrary((s) => s.backup);
+  const { status, run, notify, dismiss } = useImport();
   const dragging = useFileDrop(run);
   const fileInput = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [showGuide, setShowGuide] = useState(false);
+  const [view, updateView] = useLibraryView();
+  const removal = useUndoRemove();
 
-  const sorted = useMemo(() => sortByRecent(songs), [songs]);
+  const all = useMemo(() => Object.values(songs), [songs]);
+  const favoriteCount = all.filter((s) => s.favorite).length;
+  // With no favorites left, the filter would hide everything; it switches itself off.
+  const favoritesOnly = view.favoritesOnly && favoriteCount > 0;
+  useEffect(() => {
+    if (view.favoritesOnly && favoriteCount === 0) updateView({ favoritesOnly: false });
+  }, [view.favoritesOnly, favoriteCount, updateView]);
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? sorted.filter((s) => `${s.title} ${s.artist}`.toLowerCase().includes(q)) : sorted;
-  }, [sorted, query]);
-  const isEmpty = sorted.length === 0;
+    const shown = all.filter(
+      (s) => (!favoritesOnly || s.favorite) && (!q || `${s.title} ${s.artist}`.toLowerCase().includes(q)),
+    );
+    return sortSongs(shown, view.order);
+  }, [all, query, favoritesOnly, view.order]);
+  const isEmpty = all.length === 0;
+
+  const downloadBackup = async () => {
+    const blob = new Blob([await backup()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = backupFileName();
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const count = all.length === 1 ? "your song" : `all ${all.length} songs`;
+    notify(`Saved a backup of ${count}. To restore it, import the file or drop it here.`);
+  };
 
   return (
     <div className={styles.page}>
@@ -39,6 +69,16 @@ export function LibraryScreen() {
           {!isEmpty && (
             <Button variant="ghost" onClick={() => setShowGuide((v) => !v)}>
               {showGuide ? "Hide guide" : "Saving from Songsterr"}
+            </Button>
+          )}
+          {!isEmpty && (
+            <Button
+              variant="ghost"
+              icon="download"
+              title="Download your songs and practice settings as one file"
+              onClick={() => void downloadBackup()}
+            >
+              Back up
             </Button>
           )}
           <Button variant="primary" icon="upload" onClick={() => fileInput.current?.click()}>
@@ -93,7 +133,21 @@ export function LibraryScreen() {
               </section>
             )}
             <div className={styles.toolbar}>
-              <h1 className={styles.sectionTitle}>Your songs</h1>
+              <h1 className={styles.sectionTitle}>{favoritesOnly ? "Favorites" : "Your songs"}</h1>
+              <div className={styles.tools}>
+                <Button
+                  variant="ghost"
+                  icon={favoritesOnly ? "starFilled" : "star"}
+                  aria-pressed={favoritesOnly}
+                  disabled={favoriteCount === 0}
+                  title={favoriteCount === 0 ? "Star a song to add it to your favorites" : undefined}
+                  className={cx(favoritesOnly && styles.toolOn)}
+                  onClick={() => updateView({ favoritesOnly: !favoritesOnly })}
+                >
+                  Favorites
+                </Button>
+                <SortMenu order={view.order} onChange={(order) => updateView({ order })} />
+              </div>
               <label className={styles.search}>
                 <Icon name="search" size={16} />
                 <input
@@ -105,13 +159,27 @@ export function LibraryScreen() {
               </label>
             </div>
             {visible.length > 0 ? (
-              <SongList songs={visible} onRemove={(song) => void remove(song.id)} />
+              <SongList
+                songs={visible}
+                order={view.order}
+                onFavorite={(song, favorite) => void setFavorite(song.id, favorite)}
+                onRemove={(song) => void removal.remove(song)}
+              />
             ) : (
               <p className={styles.noResults}>No songs match "{query}".</p>
             )}
           </>
         )}
       </main>
+
+      {removal.removed && (
+        <div className={styles.toast} role="status">
+          <span className={styles.toastText}>Removed {removal.removed.title}</span>
+          <button type="button" className={styles.toastAction} onClick={() => void removal.undo()}>
+            Undo
+          </button>
+        </div>
+      )}
 
       {dragging && (
         <div className={styles.dropOverlay}>
@@ -120,5 +188,34 @@ export function LibraryScreen() {
         </div>
       )}
     </div>
+  );
+}
+
+function SortMenu({ order, onChange }: { order: SongOrder; onChange: (order: SongOrder) => void }) {
+  const current = SONG_ORDERS.find((o) => o.id === order)!;
+  return (
+    <Popover
+      align="end"
+      trigger={({ toggle }) => (
+        <Button variant="ghost" icon="sort" aria-label={`Sort by: ${current.label}`} onClick={toggle}>
+          {current.label}
+        </Button>
+      )}
+    >
+      {(close) =>
+        SONG_ORDERS.map((o) => (
+          <MenuItem
+            key={o.id}
+            selected={o.id === order}
+            onSelect={() => {
+              onChange(o.id);
+              close();
+            }}
+          >
+            {o.label}
+          </MenuItem>
+        ))
+      }
+    </Popover>
   );
 }

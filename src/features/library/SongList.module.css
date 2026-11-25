@@ -8,10 +8,10 @@
 .row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px 32px 160px 36px;
+  grid-template-columns: 36px minmax(0, 1fr) 120px 32px 160px 36px;
   align-items: center;
   gap: var(--s4);
-  padding: var(--s3) var(--s2) var(--s3) var(--s3);
+  padding: var(--s3) var(--s2);
   border-bottom: 1px solid var(--line);
   border-radius: var(--radius-sm);
 }
@@ -60,6 +60,18 @@
   font-size: var(--text-sm);
 }
 
+/* Above the row's stretched link, so they take their own clicks. */
+.star {
+  position: relative;
+  z-index: 1;
+  margin-right: calc(-1 * var(--s2));
+  color: var(--chalk-faint);
+}
+
+.starred {
+  color: var(--amber);
+}
+
 .remove {
   position: relative;
   z-index: 1;
@@ -73,10 +85,11 @@
 
 @media (max-width: 720px) {
   .row {
-    grid-template-columns: minmax(0, 1fr) 24px 36px;
+    grid-template-columns: 36px minmax(0, 1fr) 24px 36px;
   }
 
-  .meta:not(:nth-child(3)) {
+  /* Only the video icon (the fourth cell) stays. */
+  .meta:not(:nth-child(4)) {
     display: none;
   }
 

@@ -10,6 +10,10 @@ const PATHS = {
   sections: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
   close: "M6 6l12 12M18 6L6 18",
   upload: "M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3",
+  download: "M12 4v12M7 11l5 5 5-5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3",
+  sort: "M7 4v16M3 16l4 4 4-4M14 6h7M14 12h5M14 18h3",
+  star: "M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z",
+  starFilled: "M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z",
   search: "M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4",
   sliders: "M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6",
   video:
@@ -33,7 +37,15 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS;
 
-const FILLED: ReadonlySet<IconName> = new Set(["play", "pause", "stop", "skipBack", "skipForward", "github"]);
+const FILLED: ReadonlySet<IconName> = new Set([
+  "play",
+  "pause",
+  "stop",
+  "skipBack",
+  "skipForward",
+  "github",
+  "starFilled",
+]);
 
 interface IconProps {
   name: IconName;

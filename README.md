@@ -6,7 +6,8 @@ A practice player for guitar tabs: loop, speed trainer, pitch shift, per-track m
 count-in with a choice of click sounds, and playback synced to the original recording on YouTube.
 
 Import Guitar Pro files (.gp, .gp3, .gp4, .gp5, .gpx), MusicXML (.musicxml, .mxl, .xml), or songs
-saved from Songsterr. Your library stays in your browser and nothing is uploaded. The app itself never
+saved from Songsterr. Your library stays in your browser and nothing is uploaded: star favorites, sort
+by title, artist or date, and back the whole library up to one file. The app itself never
 contacts Songsterr; the optional bookmark only reads the song you're viewing there, when you click it.
 
 _Not affiliated with or endorsed by Songsterr._
@@ -39,6 +40,13 @@ To capture a song by hand instead:
 
 Importing the same song again adds any newly captured tracks to the existing entry. Synced YouTube
 playback is available for Songsterr songs whose video was captured.
+
+### Backing up
+
+The library lives in your browser, so clearing its data or switching computers would lose it.
+**Back up** in the library downloads every song with its practice settings and saved loops as one
+`.json` file. To restore, import that file like any other (or drop it onto the app). Restoring
+only adds songs you don't have; songs already in the library are left as they are.
 
 ## Keyboard
 

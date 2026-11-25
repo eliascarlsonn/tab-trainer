@@ -25,7 +25,7 @@ export function useCaptureReceiver() {
         const file = new File([JSON.stringify(data.har)], data.fileName || "songsterr.har", {
           type: "application/json",
         });
-        const { songs, errors } = await useLibrary.getState().importFiles([file]);
+        const { songs, errors } = await useLibrary.getState().importFiles([file], { backups: false });
         const song = songs[0];
         if (!song) throw new Error(errors[0]?.message ?? "No tabs were found in that song.");
         reply({ type: CAPTURE_MESSAGES.imported, message: song.title });
